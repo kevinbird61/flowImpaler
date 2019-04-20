@@ -16,6 +16,7 @@
 
 #include "header.h"
 #include "stats.h"
+#include "sh.h"
 
 extern "C"
 {
@@ -208,5 +209,7 @@ int main(int argc, char **argv){
     printf("%-10s %-s: %3.5f %%\n", "IPv6", "(%)", ipv6cnt*100/(float)pktcnt);
     printf("%-10s %-s: %3.5f %%\n", "Other", "(%)", (pktcnt-arpcnt-ipv4cnt-ipv6cnt)*100/(float)pktcnt);
     cout << "=====================================================" << endl;
+    
     // after collecting all packet information, start the shell
+    sh_loop(flow_stats);
 }
