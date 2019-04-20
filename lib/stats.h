@@ -12,8 +12,14 @@
 
 using namespace std;
 
+typedef struct _flow_t {
+    string srcIP;
+    string dstIP;
+    int cnt;
+} flow_t;
+
 typedef struct _flow_stats_t {
-    map<unsigned int, int> pktcnt; // packet count 
+    map<string, flow_t> pktcnt; // packet count 
 } flow_stats_t;
 
 #endif

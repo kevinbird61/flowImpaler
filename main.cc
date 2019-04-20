@@ -112,30 +112,30 @@ int main(int argc, char **argv){
                     ipv4=(struct sniff_ipv4*)(packet + size_existed);
                     int size_ip = IP_HL(ipv4)*4;
                     size_existed += size_ip;
-
-                    // get flow ID
-                    string flowID;
-                    flowID = string(inet_ntoa(ipv4->srcAddr))+string(inet_ntoa(ipv4->dstAddr));
-                    unsigned int flowIndex = crc32((unsigned char *)flowID.c_str());
+                    
                     // using srcAddr as key of flow_stats, then use flowID 
                     // to store into specific flow entry own by flow_stats[srcAddr]
                     if(flow_stats.find(string(inet_ntoa(ipv4->srcAddr)))==flow_stats.end()){ 
                         // not found, need to init
-                        if(flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.find(flowIndex)==flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.end()){ 
+                        if(flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.find(string(inet_ntoa(ipv4->dstAddr)))==flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.end()){ 
                             // not found, need to init
-                            flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[flowIndex]=1;
+                            flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].srcIP=string(inet_ntoa(ipv4->srcAddr));
+                            flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].dstIP=string(inet_ntoa(ipv4->dstAddr));
+                            flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].cnt=1;
                         } else { 
                             // exist
-                            flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[flowIndex]++;
+                            flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].cnt++;
                         }
                     } else {
                         // exist
-                        if(flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.find(flowIndex)==flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.end()){ 
+                        if(flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.find(string(inet_ntoa(ipv4->dstAddr)))==flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.end()){ 
                             // not found, need to init
-                            flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[flowIndex]=1;
+                            flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].srcIP=string(inet_ntoa(ipv4->srcAddr));
+                            flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].dstIP=string(inet_ntoa(ipv4->dstAddr));
+                            flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].cnt=1;
                         } else { 
                             // exist
-                            flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[flowIndex]++;
+                            flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].cnt++;
                         }
                     }
 
@@ -212,4 +212,6 @@ int main(int argc, char **argv){
     
     // after collecting all packet information, start the shell
     sh_loop(flow_stats);
+
+    return 0;
 }

@@ -7,7 +7,7 @@ CXXFLAGS:= -std=c++11
 all: $(EXEC)
 
 # executable
-$(EXEC): $(OBJS) $(LIBS) $(THIRD) main.cc
+$(EXEC): $(LIBS) $(OBJS) $(THIRD) main.cc
 	g++ $^ -o $@ -Isrc -Ilib -Ithird_party $(CXXFLAGS) -lpcap -lm
 
 # third party
