@@ -18,6 +18,8 @@ make
 
 ## Usage
 
+### Read from pcap
+
 * First, you can run the executable file with command down below:
 ```sh
 ./flowimpaler -f <a valid pcap file>
@@ -59,6 +61,25 @@ If you have counter any problem, feel free to contact me:
  Email: kevinbird61@gmail.com
  Github: github.com/kevinbird61
 ```
+
+### Live Capturing
+
+* Run directly (flowImpaler will listen on your default network interface). Without any option, default will be terminated until capture `100` packets.
+```sh
+(sudo) ./flowimpaler -d 
+```
+
+* Run with specified timeout (For example down below, it will listen for `20` second)
+```sh
+(sudo) ./flowimpaler -d -t 20
+```
+
+* Run with specified packet counts (For example down below, it will terminate until capture `20` packets)
+```
+(sudo) ./flowimpaler -d -c 20
+```
+
+> Notice! `-t` has higher priority than `-c`. 
 
 ## Author
 
