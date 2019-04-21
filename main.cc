@@ -77,7 +77,7 @@ int main(int argc, char **argv){
                 timeout = atoi(optarg);
                 break;
             case 'f':
-                type=1; // denote as "read from file"
+                type=0; // denote as "read from file"
                 optind--;
                 for(;optind<argc && *argv[optind]!='-';optind++){
                     // push new file 
