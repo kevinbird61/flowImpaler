@@ -50,14 +50,20 @@ map<string, flow_stats_t> flow_stats;
 
 int main(int argc, char **argv){
     // control flags
-    int ch,type=0,debug=0;
+    int ch,type=0,debug=0,timeout=1000;
     vector<string> inputfile;
-    while((ch=getopt(argc, argv, "e:df:"))!=-1)
+    while((ch=getopt(argc, argv, "df:t:"))!=-1)
     {
         switch(ch)
         {
             case 'd':
-                debug=1;
+                // TODO:
+                type=1; // denote as "read from device", need to get the device name
+                break;
+            case 't':
+                // set timeout 
+                cout << "Set timeout value: " << optarg << " (ms)." << endl;
+                timeout = atoi(optarg);
                 break;
             case 'f':
                 type=1; // denote as "read from file"
@@ -67,28 +73,34 @@ int main(int argc, char **argv){
                     inputfile.push_back(argv[optind]);
                 }
                 break;
-            case 'e':
-                // TODO:
-                type=1; // denote as "read from device", need to get the device name
-                break;
         }
     }
 
     struct pcap_pkthdr *header; 
     const u_char *packet;
     pcap_t *handle; 
+    char *device = NULL;
     char errbuf[PCAP_ERRBUF_SIZE];
 
-    // traverse all input files
-    for(int i=0;i<inputfile.size();i++){
-        cout << "Input pcap filename: " << inputfile.at(i) << endl;
-        // open 
-        handle=pcap_open_offline(inputfile.at(i).c_str(), errbuf);
-        if(handle==NULL){
-            fprintf(stderr, "Couldn't open pcap file: %s\n", inputfile.at(i).c_str()); 
-            fprintf(stderr, "%s\n", errbuf);
-            return(2); 
+    if(type){
+        // read from device 
+        device = pcap_lookupdev(errbuf);
+        if(!device){
+            fprintf(stderr, "pcap_lookupdev(): %s\n", errbuf);
+            exit(1);
         }
+
+        cout << "Sniffing interface: " << device << endl;
+        cout << "Timeout value (ms): " << timeout << endl;
+
+        // open intf 
+        handle = pcap_open_live(device, 65535, 1, timeout, errbuf);
+        if(!handle){
+            fprintf(stderr, "pcap_open_live(): %s\n", errbuf);
+            exit(1);
+        }
+
+        // read packet
         // success, read pcap file and store into pre-defined data structure
         while(1){
             int ret = pcap_next_ex(handle, &header, &packet);
@@ -189,14 +201,139 @@ int main(int argc, char **argv){
 
             } else if(ret==0){
                 fprintf(stderr, "Timeout (by libpcap)\n"); 
+                break;
             } else if(ret==-1){ // end if fail
                 fprintf(stderr, "pcap_next_ex(): %s\n", pcap_geterr(handle));
+                exit(1);
             } else if(ret==-2){ // end if no more packet
                 cout << "No more packet from file." << endl;
                 break;
             }
         }
+
+    } else {
+        // traverse all input files
+        for(int i=0;i<inputfile.size();i++){
+            cout << "Input pcap filename: " << inputfile.at(i) << endl;
+            // open 
+            handle=pcap_open_offline(inputfile.at(i).c_str(), errbuf);
+            if(handle==NULL){
+                fprintf(stderr, "Couldn't open pcap file: %s\n", inputfile.at(i).c_str()); 
+                fprintf(stderr, "%s\n", errbuf);
+                return(2); 
+            }
+            // success, read pcap file and store into pre-defined data structure
+            while(1){
+                int ret = pcap_next_ex(handle, &header, &packet);
+                if(ret==1){
+                    // success, then measurement apply on pcap
+                    
+                    // inc pktcnt
+                    pktcnt++;
+                    /* ========================================== */
+                    /* Ethernet */
+                    /* ========================================== */
+                    ethernet=(struct sniff_ethernet*)(packet);
+                    size_existed+=SIZE_ETHER;
+
+                    // base on EtherType to parse next header (L3)
+                    if(ntohs(ethernet->etherType)==0x0800){
+                        ipv4cnt++;
+                        /* ========================================== */
+                        /* IPv4 */
+                        /* ========================================== */
+                        ipv4=(struct sniff_ipv4*)(packet + size_existed);
+                        int size_ip = IP_HL(ipv4)*4;
+                        size_existed += size_ip;
+                        
+                        // using srcAddr as key of flow_stats, then use flowID 
+                        // to store into specific flow entry own by flow_stats[srcAddr]
+                        if(flow_stats.find(string(inet_ntoa(ipv4->srcAddr)))==flow_stats.end()){ 
+                            // not found, need to init
+                            if(flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.find(string(inet_ntoa(ipv4->dstAddr)))==flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.end()){ 
+                                // not found, need to init
+                                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].srcIP=string(inet_ntoa(ipv4->srcAddr));
+                                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].dstIP=string(inet_ntoa(ipv4->dstAddr));
+                                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].cnt=1;
+                            } else { 
+                                // exist
+                                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].cnt++;
+                            }
+                        } else {
+                            // exist
+                            if(flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.find(string(inet_ntoa(ipv4->dstAddr)))==flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.end()){ 
+                                // not found, need to init
+                                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].srcIP=string(inet_ntoa(ipv4->srcAddr));
+                                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].dstIP=string(inet_ntoa(ipv4->dstAddr));
+                                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].cnt=1;
+                            } else { 
+                                // exist
+                                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].cnt++;
+                            }
+                        }
+
+                        if(size_ip < 20){
+                            fprintf(stderr, "Invalid IPv4 header length: %u bytes\n", size_ip);
+                        } else {
+                            // base on Protocol number to parse next header (L4)
+                            if(ipv4->protocol==(u_char)1){
+                                // ICMP
+                                icmpcnt++;
+                                icmp=(struct sniff_icmp*)(packet + size_existed);
+                                size_existed+=4; // 4 bytes 
+
+                                // TODO
+                            }
+                            else if(ipv4->protocol==(u_char)6){
+                                // TCP 
+                                tcpcnt++;
+                                tcp=(struct sniff_tcp*)(packet + size_existed);
+                                size_existed+=TH_OFF(tcp)*4;
+
+                                // cout << string(inet_ntoa(ipv4->srcAddr)) << "-> " << string(inet_ntoa(ipv4->dstAddr)) << endl; 
+
+                            } else if(ipv4->protocol==(u_char)17){
+                                // UDP
+                                udpcnt++;
+                                udp=(struct sniff_udp*)(packet + size_existed);
+                                size_existed += 8;
+                            }
+                        }
+
+                        /* ========================================== */
+                        /* TODO: Other L3 protocol ... */
+                        /* ========================================== */
+                    } else if(ntohs(ethernet->etherType)==0x0806){
+                        // ARP
+                        arpcnt++;
+                        // TODO
+                    } else if(ntohs(ethernet->etherType)==0x86DD){
+                        // IPv6
+                        ipv6cnt++;
+                        // TODO
+                    }
+
+                    /* ========================================== */
+                    /* TODO: Other L2 protocol ... */
+                    /* ========================================== */
+                    // rest part (payload)
+                    payload=(char*)(packet+size_existed);
+                    size_existed=0; // reset
+
+                } else if(ret==0){
+                    fprintf(stderr, "Timeout (by libpcap)\n"); 
+                } else if(ret==-1){ // end if fail
+                    fprintf(stderr, "pcap_next_ex(): %s\n", pcap_geterr(handle));
+                } else if(ret==-2){ // end if no more packet
+                    cout << "No more packet from file." << endl;
+                    break;
+                }
+            }
+        }    
     }
+
+    // free
+    pcap_close(handle);
 
     cout << "=====================================================" << endl;
     cout << "Unique hosts (IP): " << flow_stats.size() << endl;
