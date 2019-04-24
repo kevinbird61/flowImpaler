@@ -74,11 +74,15 @@ int sh_execute(vector<string> args)
         cout << "---------------------------------------------------------------" << endl;
         cout << "Find all stats relate to IP address (source IP): " << args.at(0) << endl;
         // Comment: Too much flows to display
+        unsigned long int total_pktcnt=0;
         for(map<string, flow_t>::iterator iter=sh_flow_stats[args.at(0)].pktcnt.begin(); 
             iter!=sh_flow_stats[args.at(0)].pktcnt.end(); iter++){
                 cout << "\t" << iter->second.srcIP << "->" << iter->second.dstIP << " : " << iter->second.cnt << endl;
+                // total pktcnt
+                total_pktcnt+=iter->second.cnt;
             }
         cout << "Related # of flows: " << sh_flow_stats[args.at(0)].pktcnt.size() << endl;
+        cout << "Related packet count: " << total_pktcnt << endl;
         cout << "---------------------------------------------------------------" << endl;
         return 1;
     } else if(args.size()==2){
