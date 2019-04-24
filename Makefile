@@ -5,6 +5,7 @@ OBJS:=sh.o
 CXXFLAGS:= -std=c++11
 
 all: $(EXEC)
+.PHONY : clean install uninstall
 
 # executable
 $(EXEC): $(LIBS) $(OBJS) $(THIRD) main.cc
@@ -21,6 +22,12 @@ $(OBJS): %.o: src/%.cc
 # libraries (wrote in C)
 $(LIBS): %.o: lib/%.c
 	gcc -c $^ -o $@ 
+
+install:
+	install -m 557 $(EXEC) /usr/bin/
+
+uninstall:
+	rm /usr/bin/flowimpaler
 
 clean: 
 	rm -rf $(OBJS) $(LIBS) $(EXEC) $(THIRD)
