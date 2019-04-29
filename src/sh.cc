@@ -67,7 +67,14 @@ int sh_execute(vector<string> args)
         return 1;
     } else if(args.at(0)=="ls") {
         cout << "---------------------------------------------------------------" << endl;
-        cout << "Total # of flows: " << sh_flow_stats.size() << endl;
+        long int total_flow_size=0;
+        for(map<string, flow_stats_t>::iterator iter=sh_flow_stats.begin();
+            iter!=sh_flow_stats.end(); iter++){
+                cout << "IP: " << iter->first << ", which has " << iter->second.pktcnt.size() << " related IP." << endl;
+                total_flow_size+=iter->second.pktcnt.size();
+            }
+        // need to divide by 2 (because we maintain bi-direction via each IP)
+        cout << "Total unique flows: " << total_flow_size/2 << endl;
         cout << "---------------------------------------------------------------" << endl;
     } else if(args.size()==1 && args.at(0)!=""){
         // IP address
