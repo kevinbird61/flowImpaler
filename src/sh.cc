@@ -97,6 +97,14 @@ int sh_execute(vector<string> args)
         cout << "---------------------------------------------------------------" << endl;
         cout << "Find all stats relate to flow (srcIP dstIP): " << args.at(0) << "->" << args.at(1) << endl;
         cout << "Related # of flow: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].cnt << endl;
+        cout << "# of Sent SYN: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].sent_syn << endl;
+        cout << "# of Recv SYN: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].recv_syn << endl;
+        cout << "# of Sent ACK: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].sent_ack << endl;
+        cout << "# of Recv ACK: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].recv_ack << endl;
+        cout << "# of Sent FIN: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].sent_fin << endl;
+        cout << "# of Recv FIN: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].recv_fin << endl;
+        cout << "# of Sent RST: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].sent_rst << endl;
+        cout << "# of Recv RST: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].recv_rst << endl;
         cout << "---------------------------------------------------------------" << endl;
     } else if(args.size()==1 && args.at(0)== "") {
         // nothing, just enter

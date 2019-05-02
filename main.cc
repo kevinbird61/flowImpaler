@@ -183,6 +183,8 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
     ethernet=(struct sniff_ethernet*)(packet);
     size_existed+=SIZE_ETHER;
 
+    string srcIP,dstIP;
+
     // base on EtherType to parse next header (L3)
     if(ntohs(ethernet->etherType)==0x0800){
         ipv4cnt++;
@@ -192,44 +194,43 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
         ipv4=(struct sniff_ipv4*)(packet + size_existed);
         int size_ip = IP_HL(ipv4)*4;
         size_existed += size_ip;
+
+        srcIP=string(inet_ntoa(ipv4->srcAddr));
+        dstIP=string(inet_ntoa(ipv4->dstAddr));
         
         // using srcAddr as key of flow_stats, then use flowID 
         // to store into specific flow entry own by flow_stats[srcAddr]
-        if(flow_stats.find(string(inet_ntoa(ipv4->srcAddr)))==flow_stats.end()){ 
+        if(flow_stats.find(srcIP)==flow_stats.end()){
             // not found, need to init
-            if(flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.find(string(inet_ntoa(ipv4->dstAddr)))==flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.end()){ 
-                // not found, need to init
-                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].srcIP=string(inet_ntoa(ipv4->srcAddr));
-                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].dstIP=string(inet_ntoa(ipv4->dstAddr));
-                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].cnt=1;
-            } else { 
-                // exist
-                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].cnt++;
-            }
+            flow_stats[srcIP].pktcnt[dstIP].srcIP=srcIP;
+            flow_stats[srcIP].pktcnt[dstIP].dstIP=dstIP;
+            flow_stats[srcIP].pktcnt[dstIP].cnt=1;
         } else {
-            // exist
-            if(flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.find(string(inet_ntoa(ipv4->dstAddr)))==flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt.end()){ 
+            if(flow_stats[srcIP].pktcnt.find(dstIP)==flow_stats[srcIP].pktcnt.end()){ 
                 // not found, need to init
-                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].srcIP=string(inet_ntoa(ipv4->srcAddr));
-                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].dstIP=string(inet_ntoa(ipv4->dstAddr));
-                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].cnt=1;
+                flow_stats[srcIP].pktcnt[dstIP].srcIP=srcIP;
+                flow_stats[srcIP].pktcnt[dstIP].dstIP=dstIP;
+                flow_stats[srcIP].pktcnt[dstIP].cnt=1;
             } else { 
                 // exist
-                flow_stats[string(inet_ntoa(ipv4->srcAddr))].pktcnt[string(inet_ntoa(ipv4->dstAddr))].cnt++;
+                flow_stats[srcIP].pktcnt[dstIP].cnt++;
             }
-        } 
+        }
 
-        // save for bi-direction (rev)
-        if(flow_stats.find(string(inet_ntoa(ipv4->dstAddr)))==flow_stats.end()){
-            // not found, need to init
-            if(flow_stats[string(inet_ntoa(ipv4->dstAddr))].pktcnt.find(string(inet_ntoa(ipv4->srcAddr)))==flow_stats[string(inet_ntoa(ipv4->dstAddr))].pktcnt.end()){ 
+        // bidirection
+        if(flow_stats.find(dstIP)==flow_stats.end()){
+            flow_stats[dstIP].pktcnt[srcIP].srcIP=dstIP;
+            flow_stats[dstIP].pktcnt[srcIP].dstIP=srcIP;
+            flow_stats[dstIP].pktcnt[srcIP].cnt=1;
+        } else {
+            if(flow_stats[dstIP].pktcnt.find(srcIP)==flow_stats[dstIP].pktcnt.end()){ 
                 // not found, need to init
-                flow_stats[string(inet_ntoa(ipv4->dstAddr))].pktcnt[string(inet_ntoa(ipv4->srcAddr))].srcIP=string(inet_ntoa(ipv4->dstAddr));
-                flow_stats[string(inet_ntoa(ipv4->dstAddr))].pktcnt[string(inet_ntoa(ipv4->srcAddr))].dstIP=string(inet_ntoa(ipv4->srcAddr));
-                flow_stats[string(inet_ntoa(ipv4->dstAddr))].pktcnt[string(inet_ntoa(ipv4->srcAddr))].cnt=1;
+                flow_stats[dstIP].pktcnt[srcIP].srcIP=dstIP;
+                flow_stats[dstIP].pktcnt[srcIP].dstIP=srcIP;
+                flow_stats[dstIP].pktcnt[srcIP].cnt=1;
             } else { 
                 // exist
-                flow_stats[string(inet_ntoa(ipv4->dstAddr))].pktcnt[string(inet_ntoa(ipv4->srcAddr))].cnt++;
+                flow_stats[dstIP].pktcnt[srcIP].cnt++;
             }
         }
 
@@ -251,7 +252,26 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
                 tcp=(struct sniff_tcp*)(packet + size_existed);
                 size_existed+=TH_OFF(tcp)*4;
 
-                // cout << string(inet_ntoa(ipv4->srcAddr)) << "-> " << string(inet_ntoa(ipv4->dstAddr)) << endl; 
+                // Calculate TCP control flags
+                if(tcp->flags&TH_SYN && tcp->flags&TH_ACK){
+                    // SYN+ACK
+                } else if(tcp->flags&TH_SYN && ((tcp->flags&TH_ACK)!=TH_ACK) ){
+                    // SYN
+                    flow_stats[srcIP].pktcnt[dstIP].sent_syn++;
+                    flow_stats[dstIP].pktcnt[srcIP].recv_syn++;
+                } else if(tcp->flags&TH_ACK && ((tcp->flags&TH_SYN)!=TH_SYN) ){
+                    // ACK
+                    flow_stats[srcIP].pktcnt[dstIP].sent_ack++;
+                    flow_stats[dstIP].pktcnt[srcIP].recv_ack++;
+                } else if(tcp->flags&TH_FIN){
+                    // FIN 
+                    flow_stats[srcIP].pktcnt[dstIP].sent_fin++;
+                    flow_stats[dstIP].pktcnt[srcIP].recv_fin++;
+                } else if(tcp->flags&TH_RST){
+                    // RST
+                    flow_stats[srcIP].pktcnt[dstIP].sent_rst++;
+                    flow_stats[dstIP].pktcnt[srcIP].recv_rst++;
+                }
 
             } else if(ipv4->protocol==(u_char)17){
                 // UDP
@@ -277,6 +297,10 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
     /* ========================================== */
     /* TODO: Other L2 protocol ... */
     /* ========================================== */
+
+    // Update timestamp 
+    flow_stats[srcIP].pktcnt[dstIP].lastseen_ts=(header->ts.tv_sec + header->ts.tv_usec/1000.0);
+
     // rest part (payload)
     payload=(char*)(packet+size_existed);
     size_existed=0; // reset
