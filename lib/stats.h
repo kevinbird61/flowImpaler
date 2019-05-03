@@ -32,6 +32,8 @@ typedef struct _flow_t {
     map<int, int> sport_unique; // port id : occurance
     map<int, int> dport_unique; 
     // duration
+    double ts_syn_received, ts_syn_sent;
+    vector<double> half_open_duration_q;
     double lastseen_ts;
     vector<double> duration_q; // store all durations
     // double avg_duration; // sec (from ACK->FIN), EWMA

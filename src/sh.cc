@@ -113,6 +113,11 @@ int sh_execute(vector<string> args)
             total_duration+=sh_flow_stats[args.at(0)].pktcnt[args.at(1)].duration_q.at(i);
         }
         cout << "Avg. duration of each connection: " << total_duration/(sh_flow_stats[args.at(0)].pktcnt[args.at(1)].duration_q.size()) << " (sec)" << endl;
+        total_duration=0; // reset
+        for(int i=0;i<sh_flow_stats[args.at(0)].pktcnt[args.at(1)].half_open_duration_q.size(); i++){
+            total_duration+=sh_flow_stats[args.at(0)].pktcnt[args.at(1)].half_open_duration_q.at(i);
+        }
+        cout << "Avg. duration of half-open connection: " << total_duration/(sh_flow_stats[args.at(0)].pktcnt[args.at(1)].half_open_duration_q.size()) << " (sec)" << endl;
         cout << "TCP/UDP port distribution---------------------------------------" << endl;
         cout << "# of unique source ports: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].sport_unique.size() << endl;
         cout << "# of unique destination ports: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].dport_unique.size() << endl;

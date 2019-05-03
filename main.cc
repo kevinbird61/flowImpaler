@@ -183,6 +183,7 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
     ethernet=(struct sniff_ethernet*)(packet);
     size_existed+=SIZE_ETHER;
 
+    double curr_ts = (header->ts.tv_sec + header->ts.tv_usec/1000.0);
     string srcIP,dstIP;
     u_short sport,dport;
 
@@ -264,13 +265,30 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
                     // SYN
                     flow_stats[srcIP].pktcnt[dstIP].sent_syn++;
                     flow_stats[dstIP].pktcnt[srcIP].recv_syn++;
+                    // record ts 
+                    flow_stats[srcIP].pktcnt[dstIP].ts_syn_sent = curr_ts;
+                    flow_stats[dstIP].pktcnt[srcIP].ts_syn_received = curr_ts;
+                    
                 } else if(tcp->flags&TH_ACK && ((tcp->flags&TH_SYN)!=TH_SYN) ){
                     // ACK
                     flow_stats[srcIP].pktcnt[dstIP].sent_ack++;
                     flow_stats[dstIP].pktcnt[srcIP].recv_ack++;
                     // record timestamp 
-                    flow_stats[srcIP].pktcnt[dstIP].lastseen_ts=(header->ts.tv_sec + header->ts.tv_usec/1000.0);
-                    flow_stats[dstIP].pktcnt[srcIP].lastseen_ts=(header->ts.tv_sec + header->ts.tv_usec/1000.0);
+                    flow_stats[srcIP].pktcnt[dstIP].lastseen_ts=curr_ts;
+                    flow_stats[dstIP].pktcnt[srcIP].lastseen_ts=curr_ts;
+                    // calculate pending duration in 3-way handshake (e.g. half-open)
+                    if(flow_stats[dstIP].pktcnt[srcIP].ts_syn_received!=0){
+                        double pending_duration = curr_ts - flow_stats[dstIP].pktcnt[srcIP].ts_syn_received;
+                        if(pending_duration>0)
+                            flow_stats[dstIP].pktcnt[srcIP].half_open_duration_q.push_back(pending_duration);
+                    }
+                    if(flow_stats[srcIP].pktcnt[dstIP].ts_syn_sent!=0){
+                        // sent
+                        double pending_duration = curr_ts - flow_stats[srcIP].pktcnt[dstIP].ts_syn_sent;
+                        if(pending_duration>0)
+                            flow_stats[srcIP].pktcnt[dstIP].half_open_duration_q.push_back(pending_duration);
+                    }
+                    
                 } else if(tcp->flags&TH_FIN){
                     // FIN 
                     flow_stats[srcIP].pktcnt[dstIP].sent_fin++;
@@ -280,7 +298,6 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
                     flow_stats[srcIP].pktcnt[dstIP].sent_rst++;
                     flow_stats[dstIP].pktcnt[srcIP].recv_rst++;
                     // current time 
-                    double curr_ts = (header->ts.tv_sec + header->ts.tv_usec/1000.0);
                     double duration_src = curr_ts - flow_stats[srcIP].pktcnt[dstIP].lastseen_ts;
                     double duration_dst = curr_ts - flow_stats[dstIP].pktcnt[srcIP].lastseen_ts;
                     // store into duration queue
@@ -324,7 +341,7 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
     /* ========================================== */
 
     // Update timestamp 
-    flow_stats[srcIP].pktcnt[dstIP].lastseen_ts=(header->ts.tv_sec + header->ts.tv_usec/1000.0);
+    flow_stats[srcIP].pktcnt[dstIP].lastseen_ts=curr_ts;
 
     // rest part (payload)
     payload=(char*)(packet+size_existed);
