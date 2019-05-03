@@ -28,9 +28,13 @@ typedef struct _flow_t {
     int sent_fin;
     int recv_rst;
     int sent_rst;
+    // # of unique ports
+    map<int, int> sport_unique; // port id : occurance
+    map<int, int> dport_unique; 
+    // duration
     double lastseen_ts;
-    //vector<double> queue_duration; // store all durations
-    //double avg_duration; // sec (from ACK->FIN), EWMA
+    vector<double> duration_q; // store all durations
+    // double avg_duration; // sec (from ACK->FIN), EWMA
     /* icmp */
     int unreachable_cnt;
 } flow_t;

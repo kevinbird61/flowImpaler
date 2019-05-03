@@ -184,6 +184,7 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
     size_existed+=SIZE_ETHER;
 
     string srcIP,dstIP;
+    u_short sport,dport;
 
     // base on EtherType to parse next header (L3)
     if(ntohs(ethernet->etherType)==0x0800){
@@ -252,6 +253,10 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
                 tcp=(struct sniff_tcp*)(packet + size_existed);
                 size_existed+=TH_OFF(tcp)*4;
 
+                // port record
+                sport=tcp->sport;
+                dport=tcp->dport;
+
                 // Calculate TCP control flags
                 if(tcp->flags&TH_SYN && tcp->flags&TH_ACK){
                     // SYN+ACK
@@ -263,6 +268,9 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
                     // ACK
                     flow_stats[srcIP].pktcnt[dstIP].sent_ack++;
                     flow_stats[dstIP].pktcnt[srcIP].recv_ack++;
+                    // record timestamp 
+                    flow_stats[srcIP].pktcnt[dstIP].lastseen_ts=(header->ts.tv_sec + header->ts.tv_usec/1000.0);
+                    flow_stats[dstIP].pktcnt[srcIP].lastseen_ts=(header->ts.tv_sec + header->ts.tv_usec/1000.0);
                 } else if(tcp->flags&TH_FIN){
                     // FIN 
                     flow_stats[srcIP].pktcnt[dstIP].sent_fin++;
@@ -271,6 +279,15 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
                     // RST
                     flow_stats[srcIP].pktcnt[dstIP].sent_rst++;
                     flow_stats[dstIP].pktcnt[srcIP].recv_rst++;
+                    // current time 
+                    double curr_ts = (header->ts.tv_sec + header->ts.tv_usec/1000.0);
+                    double duration_src = curr_ts - flow_stats[srcIP].pktcnt[dstIP].lastseen_ts;
+                    double duration_dst = curr_ts - flow_stats[dstIP].pktcnt[srcIP].lastseen_ts;
+                    // store into duration queue
+                    if(duration_src > 0)
+                        flow_stats[srcIP].pktcnt[dstIP].duration_q.push_back(duration_src);
+                    if(duration_dst > 0)
+                        flow_stats[dstIP].pktcnt[srcIP].duration_q.push_back(duration_dst);
                 }
 
             } else if(ipv4->protocol==(u_char)17){
@@ -278,7 +295,15 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
                 udpcnt++;
                 udp=(struct sniff_udp*)(packet + size_existed);
                 size_existed += 8;
+
+                // port record
+                sport=udp->sport;
+                dport=udp->dport;
             }
+
+            // Store the port information into flow_stats
+            flow_stats[srcIP].pktcnt[dstIP].sport_unique[sport]++;
+            flow_stats[srcIP].pktcnt[dstIP].dport_unique[dport]++;
         }
 
         /* ========================================== */

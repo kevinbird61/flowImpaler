@@ -96,7 +96,9 @@ int sh_execute(vector<string> args)
         // IP address -> IP address 
         cout << "---------------------------------------------------------------" << endl;
         cout << "Find all stats relate to flow (srcIP dstIP): " << args.at(0) << "->" << args.at(1) << endl;
-        cout << "Related # of flow: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].cnt << endl;
+        cout << "Basic----------------------------------------------------------" << endl;
+        cout << "# of packets in this flow: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].cnt << endl;
+        cout << "TCP control flags----------------------------------------------" << endl;
         cout << "# of Sent SYN: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].sent_syn << endl;
         cout << "# of Recv SYN: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].recv_syn << endl;
         cout << "# of Sent ACK: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].sent_ack << endl;
@@ -105,6 +107,15 @@ int sh_execute(vector<string> args)
         cout << "# of Recv FIN: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].recv_fin << endl;
         cout << "# of Sent RST: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].sent_rst << endl;
         cout << "# of Recv RST: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].recv_rst << endl;
+        cout << "TCP connection duration----------------------------------------" << endl;
+        double total_duration=0;
+        for(int i=0;i<sh_flow_stats[args.at(0)].pktcnt[args.at(1)].duration_q.size(); i++){
+            total_duration+=sh_flow_stats[args.at(0)].pktcnt[args.at(1)].duration_q.at(i);
+        }
+        cout << "Avg. duration of each connection: " << total_duration/(sh_flow_stats[args.at(0)].pktcnt[args.at(1)].duration_q.size()) << " (sec)" << endl;
+        cout << "TCP/UDP port distribution---------------------------------------" << endl;
+        cout << "# of unique source ports: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].sport_unique.size() << endl;
+        cout << "# of unique destination ports: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].dport_unique.size() << endl;
         cout << "---------------------------------------------------------------" << endl;
     } else if(args.size()==1 && args.at(0)== "") {
         // nothing, just enter
