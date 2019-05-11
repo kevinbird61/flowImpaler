@@ -340,7 +340,12 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
     /* TODO: Other L2 protocol ... */
     /* ========================================== */
 
-    // Update timestamp 
+    // get interval
+    if(flow_stats[srcIP].pktcnt[dstIP].lastseen_ts!=0){
+        // exist
+        flow_stats[srcIP].pktcnt[dstIP].pkt_interval.push_back(curr_ts - flow_stats[srcIP].pktcnt[dstIP].lastseen_ts);
+    }
+    // update timestamp
     flow_stats[srcIP].pktcnt[dstIP].lastseen_ts=curr_ts;
 
     // rest part (payload)

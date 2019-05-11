@@ -98,6 +98,12 @@ int sh_execute(vector<string> args)
         cout << "Find all stats relate to flow (srcIP dstIP): " << args.at(0) << "->" << args.at(1) << endl;
         cout << "Basic----------------------------------------------------------" << endl;
         cout << "# of packets in this flow: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].cnt << endl;
+        double total_interval=0;
+        for(int i=0;i<sh_flow_stats[args.at(0)].pktcnt[args.at(1)].pkt_interval.size(); i++){
+            total_interval+=sh_flow_stats[args.at(0)].pktcnt[args.at(1)].pkt_interval.at(i);
+        }
+        cout << "Total time used by this flow: " << total_interval << " (sec)" << endl;
+        cout << "Avg. time interval between sequential packets: " << total_interval/(sh_flow_stats[args.at(0)].pktcnt[args.at(1)].pkt_interval.size()) << " (sec)" << endl;
         cout << "TCP control flags----------------------------------------------" << endl;
         cout << "# of Sent SYN: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].sent_syn << endl;
         cout << "# of Recv SYN: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].recv_syn << endl;

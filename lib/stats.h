@@ -15,6 +15,8 @@ using namespace std;
 typedef struct _flow_t {
     // basic
     int cnt;
+    // double prev_ts;
+    vector<double> pkt_interval;
     // L3
     string srcIP;
     string dstIP;
