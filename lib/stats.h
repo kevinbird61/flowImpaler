@@ -15,8 +15,11 @@ using namespace std;
 typedef struct _flow_t {
     // basic
     int cnt;
-    // double prev_ts;
     vector<double> pkt_interval;
+    int flowlet_pktcnt;     // number of packet in current flowlet(-like)
+    double flowlet_duration;
+    vector<int> flowlet_q;
+    vector<double> flowlet_duration_q;
     // L3
     string srcIP;
     string dstIP;
@@ -44,7 +47,12 @@ typedef struct _flow_t {
 } flow_t;
 
 typedef struct _flow_stats_t {
-    map<string, flow_t> pktcnt; // packet count 
+    map<string, flow_t> pktcnt;     // packet count 
 } flow_stats_t;
+
+typedef struct _traffic_t {
+    map<string, flow_stats_t> flow_stats;   // flow_stats
+    double flowlet_timeout;                 // if the user reset/modify the FLOWLET_TIMEOUT, it will store in here.
+} traffic_t;
 
 #endif

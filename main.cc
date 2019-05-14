@@ -49,6 +49,7 @@ unsigned long int udpcnt=0;
 pcap_t *handle; 
 // And let user check out those information via shell.
 map<string, flow_stats_t> flow_stats; 
+traffic_t traffic_stats;
 
 // packet processing for live capturing
 void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
@@ -58,6 +59,7 @@ int main(int argc, char **argv){
     // control flags
     int ch,type=0,debug=0,timeout=0,npkts=100;
     vector<string> inputfile;
+    traffic_stats.flowlet_timeout=0.1;
     while((ch=getopt(argc, argv, "hdc:f:t:"))!=-1)
     {
         switch(ch)
@@ -169,7 +171,8 @@ int main(int argc, char **argv){
     cout << "=====================================================" << endl;
     
     // after collecting all packet information, start the shell
-    sh_loop(flow_stats);
+    traffic_stats.flow_stats=flow_stats;
+    sh_loop(traffic_stats);
 
     return 0;
 }
@@ -342,11 +345,30 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
 
     // get interval
     if(flow_stats[srcIP].pktcnt[dstIP].lastseen_ts!=0){
-        // exist
-        flow_stats[srcIP].pktcnt[dstIP].pkt_interval.push_back(curr_ts - flow_stats[srcIP].pktcnt[dstIP].lastseen_ts);
+        // exist, update timestamp
+        double intr = std::abs(curr_ts - flow_stats[srcIP].pktcnt[dstIP].lastseen_ts);
+        flow_stats[srcIP].pktcnt[dstIP].pkt_interval.push_back(intr);
+        flow_stats[srcIP].pktcnt[dstIP].lastseen_ts=curr_ts;
+        // interval > flowlet_timeout or not
+        if(intr > traffic_stats.flowlet_timeout){
+            // push current flowlet_pktcnt into flowlet_queue
+            flow_stats[srcIP].pktcnt[dstIP].flowlet_q.push_back(flow_stats[srcIP].pktcnt[dstIP].flowlet_pktcnt);
+            flow_stats[srcIP].pktcnt[dstIP].flowlet_pktcnt=1;
+            flow_stats[srcIP].pktcnt[dstIP].flowlet_duration_q.push_back(flow_stats[srcIP].pktcnt[dstIP].flowlet_duration);
+            flow_stats[srcIP].pktcnt[dstIP].flowlet_duration=0;
+        } else {
+            // increment flowlet_pktcnt
+            flow_stats[srcIP].pktcnt[dstIP].flowlet_pktcnt++;
+            // increment duration
+            flow_stats[srcIP].pktcnt[dstIP].flowlet_duration+=intr;
+        }
+    } else {
+        // update timestamp
+        flow_stats[srcIP].pktcnt[dstIP].lastseen_ts=curr_ts;
+        // init for flowlet 
+        flow_stats[srcIP].pktcnt[dstIP].flowlet_pktcnt=1;
+        flow_stats[srcIP].pktcnt[dstIP].flowlet_duration=0;
     }
-    // update timestamp
-    flow_stats[srcIP].pktcnt[dstIP].lastseen_ts=curr_ts;
 
     // rest part (payload)
     payload=(char*)(packet+size_existed);

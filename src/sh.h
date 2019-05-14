@@ -13,7 +13,7 @@
 using namespace std;
 
 // methods
-int sh_loop(map<string, flow_stats_t> flow_stats);
+int sh_loop(traffic_t traffic_stats);
 int sh_interpret(string filename);
 vector<string> sh_readline(string raw);
 int sh_execute(vector<string> args);

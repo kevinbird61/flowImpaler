@@ -4,12 +4,14 @@
  */
 #include "sh.h"
 
+traffic_t sh_traffic_stats;
 map<string, flow_stats_t> sh_flow_stats; 
 
-int sh_loop(map<string, flow_stats_t> flow_stats)
+int sh_loop(traffic_t t_stats)
 {
     // assign flow_stats from main program
-    sh_flow_stats = flow_stats;
+    sh_traffic_stats=t_stats;
+    sh_flow_stats=sh_traffic_stats.flow_stats;
     // variables
     vector<string> args;
     int status=0;
@@ -104,6 +106,18 @@ int sh_execute(vector<string> args)
         }
         cout << "Total time used by this flow: " << total_interval << " (sec)" << endl;
         cout << "Avg. time interval between sequential packets: " << total_interval/(sh_flow_stats[args.at(0)].pktcnt[args.at(1)].pkt_interval.size()) << " (sec)" << endl;
+        // flowlet count & duration
+        double avg_flowlet_pktcnt=0, avg_flowlet_duration=0;
+        for(int i=0;i<sh_flow_stats[args.at(0)].pktcnt[args.at(1)].flowlet_q.size(); i++){
+            avg_flowlet_pktcnt+=sh_flow_stats[args.at(0)].pktcnt[args.at(1)].flowlet_q.at(i);
+        }
+        for(int i=0;i<sh_flow_stats[args.at(0)].pktcnt[args.at(1)].flowlet_duration_q.size(); i++){
+            avg_flowlet_duration+=sh_flow_stats[args.at(0)].pktcnt[args.at(1)].flowlet_duration_q.at(i);
+        }
+        cout << "Total amount of flowlets in current flow: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].flowlet_q.size() << endl;        
+        cout << "Avg. packet count for each flowlet: " << avg_flowlet_pktcnt/sh_flow_stats[args.at(0)].pktcnt[args.at(1)].flowlet_q.size() << endl;
+        cout << "Avg. duration for each flowlet: " << avg_flowlet_duration/sh_flow_stats[args.at(0)].pktcnt[args.at(1)].flowlet_duration_q.size() << endl;
+
         cout << "TCP control flags----------------------------------------------" << endl;
         cout << "# of Sent SYN: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].sent_syn << endl;
         cout << "# of Recv SYN: " << sh_flow_stats[args.at(0)].pktcnt[args.at(1)].recv_syn << endl;
