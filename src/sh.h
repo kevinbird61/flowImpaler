@@ -19,8 +19,21 @@ int sh_interpret(string filename);
 vector<string> sh_readline(string raw);
 int sh_execute(vector<string> args);
 
+// support command
+void ls();
+void related_flows(string target);
+void target_flow(string srcIP, string dstIP);
+void pt(double threshold);
+
+// computing block
+void get_port_dist();       // dealing with port distribution
+
+// component (print helper message)
+void print_basic();         // basic information about current pcap/traffic
+void print_analytics();     // traffic analytics (percentage)
+void print_port_dist();     // port distribution
+
 // log, helper function
 void print_help();
-void get_port_dist();
  
 #endif
