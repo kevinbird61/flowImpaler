@@ -98,6 +98,10 @@ int sh_execute(vector<string> args)
 
 void pt(double threshold)
 {
+    // check
+    if(threshold==sh_traffic_stats.port_threshold)
+        return;
+    sh_traffic_stats.pt_q.clear();
     cout << "---------------------------------------------------------------" << endl;
     cout << "List # of flows that surpass port threshold: " << threshold << endl;
     int num_exceed_pt=0;
@@ -107,8 +111,10 @@ void pt(double threshold)
             // src->first (srcIP), src->second (pktcnt, related_flows)
             for(map<string, flow_t>::iterator dst=sh_flow_stats[src->first].pktcnt.begin(); 
                 dst!=sh_flow_stats[src->first].pktcnt.end(); dst++){
-                    if(dst->second.dport_unique.size() > threshold)
+                    if(dst->second.dport_unique.size() > threshold){
                         num_exceed_pt++;
+                        sh_traffic_stats.pt_q.push_back(src->first+"->"+dst->first);
+                    }
                 }
         }
     // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
@@ -117,6 +123,10 @@ void pt(double threshold)
     // FIXME: also need to update src port distribution ? (does this necessary ?)
 
     cout << "# of flows:" << num_exceed_pt << endl;
+    // print the flows that meet the condition
+    for(auto i=0; i<sh_traffic_stats.pt_q.size(); i++){
+        cout << sh_traffic_stats.pt_q.at(i) << endl;
+    }
     cout << "---------------------------------------------------------------" << endl;
 }
 

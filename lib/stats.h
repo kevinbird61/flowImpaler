@@ -55,6 +55,7 @@ typedef struct _traffic_t {
     // config/user setting, from config file or argparse
     double flowlet_timeout;                 // if the user reset/modify the FLOWLET_TIMEOUT, it will store in here.
     double port_threshold;                  // port upperbound threshold set by user
+    vector<string> pt_q;                    // contain the flow that surpass port threshold
     // basic 
     long int total_flow_size;
     string filename;
