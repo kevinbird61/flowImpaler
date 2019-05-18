@@ -52,7 +52,23 @@ typedef struct _flow_stats_t {
 
 typedef struct _traffic_t {
     map<string, flow_stats_t> flow_stats;   // flow_stats
+    // config/user setting, from config file or argparse
     double flowlet_timeout;                 // if the user reset/modify the FLOWLET_TIMEOUT, it will store in here.
+    double port_threshold;                  // port upperbound threshold set by user
+    // basic 
+    long int total_flow_size;
+    string filename;
+    unsigned long int pktcnt, arpcnt, ipv4cnt, ipv6cnt, icmpcnt, tcpcnt, udpcnt;
+    // dst port distribution 
+    double max_num_dport, min_num_dport, mean_dst_port, std_dst_port;
+    double dp_num_pos_ci_1, dp_num_pos_ci_2, dp_num_pos_ci_3, dp_num_pos_ci_max;
+    double dp_num_neg_ci_1, dp_num_neg_ci_2, dp_num_neg_ci_3, dp_num_neg_ci_min;
+    double dp_num_user_defined;
+    // src port 
+    double max_num_sport, min_num_sport, mean_src_port, std_src_port;
+    double sp_num_pos_ci_1, sp_num_pos_ci_2, sp_num_pos_ci_3, sp_num_pos_ci_max;
+    double sp_num_neg_ci_1, sp_num_neg_ci_2, sp_num_neg_ci_3, sp_num_neg_ci_min;
+    double sp_num_user_defined;
 } traffic_t;
 
 #endif

@@ -17,7 +17,7 @@ $(THIRD): %.o: third_party/%.c
 
 # objectives (wrote in C++)
 $(OBJS): %.o: src/%.cc 
-	g++ -c $^ -Ilib -o $@ $(CXXFLAGS)
+	g++ -c $^ -Ilib -o $@ $(CXXFLAGS) -lm
 
 # libraries (wrote in C)
 $(LIBS): %.o: lib/%.c

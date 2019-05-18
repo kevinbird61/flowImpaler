@@ -54,29 +54,29 @@ traffic_t traffic_stats;
 // packet processing for live capturing
 void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
 void alarm_handler(int sig){ pcap_breakloop(handle); }
+void print_help_msg();
 
 int main(int argc, char **argv){
     // control flags
     int ch,type=0,debug=0,timeout=0,npkts=100;
     vector<string> inputfile;
+    // init for traffic_stats
     traffic_stats.flowlet_timeout=0.1;
-    while((ch=getopt(argc, argv, "hdc:f:t:"))!=-1)
+    traffic_stats.filename="";
+    traffic_stats.port_threshold=1000;
+    // argparse 
+    while((ch=getopt(argc, argv, "hdc:f:t:p:"))!=-1)
     {
         switch(ch)
         {
-            case 'd':
-                // TODO:
-                type=1; // denote as "read from device", need to get the device name
-                break;
             case 'c':
                 // set number of packet
                 cout << "Set number of capturing packets: " << optarg << "." << endl;
                 npkts = atoi(optarg);
                 break;
-            case 't':
-                // set timeout 
-                cout << "Set timeout value: " << optarg << " (s)." << endl;
-                timeout = atoi(optarg);
+            case 'd':
+                // TODO:
+                type=1; // denote as "read from device", need to get the device name
                 break;
             case 'f':
                 type=0; // denote as "read from file"
@@ -88,19 +88,19 @@ int main(int argc, char **argv){
                 break;
             case 'h':
                 // print manual 
-                cout << "\nWelcome to use FlowImpaler!" << "\n"
-                    << "Support options:" << "\n"
-                    << "-----------------------------------------------------------------------------------------" << "\n"
-                    << "-d : read from device. (will listen on default network interface, i.e. enpXs0)" << "\n"
-                    << "-t : specify timeout of reading process in seconds. (only enable when you use '-d')" << "\n"
-                    << "-c : specify number of captured packets in reading process. (only enable when you use '-d')" << "\n"
-                    << "\t (\033[1;31m Notice! -c has higher priority than -t\33[0m )\n"
-                    << "-f \033[1;36m<pcap file>\033[0m : specify the pcap file. (offline mode)\n"
-                    << "-----------------------------------------------------------------------------------------" << "\n"
-                    << "If you have counter any problem, feel free to contact me: \n"
-                    << " Email: kevinbird61@gmail.com\n"
-                    << " Github: github.com/kevinbird61\n"
-                    << endl;
+                print_help_msg();
+                exit(1);
+            case 'p':
+                // set port threshold
+                traffic_stats.port_threshold=atoi(optarg);
+                break;
+            case 't':
+                // set timeout 
+                cout << "Set timeout value: " << optarg << " (s)." << endl;
+                timeout = atoi(optarg);
+                break;
+            default:
+                print_help_msg();
                 exit(1);
         }
     }
@@ -143,6 +143,8 @@ int main(int argc, char **argv){
         // traverse all input files
         for(int i=0;i<inputfile.size();i++){
             cout << "Input pcap filename: " << inputfile.at(i) << endl;
+            // store filename 
+            traffic_stats.filename+=inputfile.at(i);
             // open 
             handle=pcap_open_offline(inputfile.at(i).c_str(), errbuf);
             if(handle==NULL){
@@ -157,7 +159,7 @@ int main(int argc, char **argv){
 
     // free
     pcap_close(handle);
-
+    cout << "Done, show the traffic information and enter into CLI ..." << endl;
     cout << "=====================================================" << endl;
     cout << "Unique hosts (IP): " << flow_stats.size() << endl;
     cout << "Total amount of packets: " << pktcnt << endl;
@@ -170,6 +172,14 @@ int main(int argc, char **argv){
     printf("%-10s %-s: %3.5f %%\n", "Other", "(%)", (pktcnt-arpcnt-ipv4cnt-ipv6cnt)*100/(float)pktcnt);
     cout << "=====================================================" << endl;
     
+    traffic_stats.pktcnt=pktcnt;
+    traffic_stats.arpcnt=arpcnt;
+    traffic_stats.ipv4cnt=ipv4cnt;
+    traffic_stats.ipv6cnt=ipv6cnt;
+    traffic_stats.tcpcnt=tcpcnt;
+    traffic_stats.udpcnt=udpcnt;
+    traffic_stats.icmpcnt=icmpcnt;
+
     // after collecting all packet information, start the shell
     traffic_stats.flow_stats=flow_stats;
     sh_loop(traffic_stats);
@@ -373,4 +383,21 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
     // rest part (payload)
     payload=(char*)(packet+size_existed);
     size_existed=0; // reset
+}
+
+void print_help_msg()
+{
+    cout << "\nWelcome to use FlowImpaler!" << "\n"
+        << "Support options:" << "\n"
+        << "-----------------------------------------------------------------------------------------" << "\n"
+        << "-d : read from device. (will listen on default network interface, i.e. enpXs0)" << "\n"
+        << "-t : specify timeout of reading process in seconds. (only enable when you use '-d')" << "\n"
+        << "-c : specify number of captured packets in reading process. (only enable when you use '-d')" << "\n"
+        << "\t (\033[1;31m Notice! -c has higher priority than -t\33[0m )\n"
+        << "-f \033[1;36m<pcap file>\033[0m : specify the pcap file. (offline mode)\n"
+        << "-----------------------------------------------------------------------------------------" << "\n"
+        << "If you have counter any problem, feel free to contact me: \n"
+        << " Email: kevinbird61@gmail.com\n"
+        << " Github: github.com/kevinbird61\n"
+        << endl;
 }

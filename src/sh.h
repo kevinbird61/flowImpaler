@@ -9,6 +9,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <cmath>
 
 using namespace std;
 
@@ -20,5 +21,6 @@ int sh_execute(vector<string> args);
 
 // log, helper function
 void print_help();
+void get_port_dist();
  
 #endif
