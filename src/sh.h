@@ -23,15 +23,18 @@ int sh_execute(vector<string> args);
 void ls();
 void related_flows(string target);
 void target_flow(string srcIP, string dstIP);
-void pt(double threshold);
+void ptop(double threshold);    // port threshold
+void ftop(double threshold);    // flowlet length threshold
 
 // computing block
 void get_port_dist();       // dealing with port distribution
+void get_flowlet_dist();    // dealing with flowlet length distribution
 
 // component (print helper message)
 void print_basic();         // basic information about current pcap/traffic
 void print_analytics();     // traffic analytics (percentage)
 void print_port_dist();     // port distribution
+void print_flen_dist();     // flowlet length distribution
 
 // log, helper function
 void print_help();

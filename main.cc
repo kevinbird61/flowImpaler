@@ -62,6 +62,7 @@ int main(int argc, char **argv){
     vector<string> inputfile;
     // init for traffic_stats
     traffic_stats.flowlet_timeout=0.1;
+    traffic_stats.flen_threshold=1000;
     traffic_stats.filename="";
     traffic_stats.port_threshold=1000;
     // argparse 

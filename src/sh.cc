@@ -13,7 +13,11 @@ int sh_loop(traffic_t t_stats)
     sh_traffic_stats=t_stats;
     sh_flow_stats=sh_traffic_stats.flow_stats;
     // get port distribution 
+    cout << "Preprocessing your traffic information, please wait a sec ..." << endl;
     get_port_dist();
+    // get flowlet length distribution
+    get_flowlet_dist();
+    cout << "Done." << endl;
     // variables
     vector<string> args;
     int status=0;
@@ -76,10 +80,14 @@ int sh_execute(vector<string> args)
         // FIXME: Add format checking on input string, whether it is IP format or not
         related_flows(args.at(0));
         return 1;
-    } else if(args.size()==2 && args.at(0)=="pt"){
-        // pt = port threshold
+    } else if(args.size()==2 && args.at(0)=="ptop"){
+        // ptop = port threshold
         // print out all flows which # of unique dst port > than args.at(1). args.at(1) is the value of pt.
-        pt(stod(args.at(1)));
+        ptop(stod(args.at(1)));
+        return 1;
+    } else if(args.size()==2 && args.at(0)=="ftop"){
+        // ftop = flowlet threshold
+        ftop(stod(args.at(1)));
         return 1;
     } else if(args.size()==2 && args.at(0)!="" && args.at(1)!=""){
         // FIXME: Same format checking needed
@@ -96,7 +104,7 @@ int sh_execute(vector<string> args)
     }
 }
 
-void pt(double threshold)
+void ptop(double threshold)
 {
     // check
     if(threshold==sh_traffic_stats.port_threshold)
@@ -128,6 +136,106 @@ void pt(double threshold)
         cout << sh_traffic_stats.pt_q.at(i) << endl;
     }
     cout << "---------------------------------------------------------------" << endl;
+}
+
+void ftop(double threshold)
+{
+    // check
+    if(threshold==sh_traffic_stats.flen_threshold)
+        return;
+    sh_traffic_stats.ft_q.clear();
+    cout << "---------------------------------------------------------------" << endl;
+    int num_exceed_ft=0;
+    // traversal all exist flow 
+    for(map<string, flow_stats_t>::iterator src=sh_flow_stats.begin(); 
+        src!=sh_flow_stats.end(); src++){
+            // src->first (srcIP), src->second (pktcnt, related_flows)
+            for(map<string, flow_t>::iterator dst=sh_flow_stats[src->first].pktcnt.begin(); 
+                dst!=sh_flow_stats[src->first].pktcnt.end(); dst++){
+                    for(int i=0; i<dst->second.flowlet_q.size(); i++){
+                        if(dst->second.flowlet_q.at(i)>threshold){
+                            num_exceed_ft++;
+                            sh_traffic_stats.ft_q.push_back(src->first+"->"+dst->first);
+                            break; // we only need to check which flow has flowlet length > threshold
+                        }
+                    }
+                }
+        }
+    // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
+    sh_traffic_stats.flen_threshold=threshold;
+    sh_traffic_stats.flen_num_user_defined=num_exceed_ft;
+
+    // print the flows that meet the condition
+    for(auto i=0; i<sh_traffic_stats.ft_q.size(); i++){
+        cout << sh_traffic_stats.ft_q.at(i) << endl;
+    }
+    cout << "# of flows:" << num_exceed_ft << endl;
+    cout << "List # of flows that surpass flowlet length threshold: " << threshold << endl;
+    cout << "---------------------------------------------------------------" << endl;
+}
+
+void get_flowlet_dist()
+{
+    long double total_len=0, var_len=0;
+    double max_len=0, min_len=65535;
+    vector<int> flowlet_len_q;
+    for(map<string, flow_stats_t>::iterator iter=sh_flow_stats.begin();
+        iter!=sh_flow_stats.end(); iter++){
+            // cout << "IP: " << iter->first << ", which has " << iter->second.pktcnt.size() << " related IP." << endl;
+            sh_traffic_stats.total_flow_size+=iter->second.pktcnt.size();
+            // get each flow 
+            for(map<string, flow_t>::iterator pktcnt=iter->second.pktcnt.begin();
+                pktcnt!=iter->second.pktcnt.end(); pktcnt++){
+                    // pktcnt->second->flowlet_q, insert into the main queue
+                    flowlet_len_q.insert(flowlet_len_q.end(), pktcnt->second.flowlet_q.begin(), pktcnt->second.flowlet_q.end());
+                }
+        }
+    // calculate - flowlet length
+    for(int i=0;i<flowlet_len_q.size();i++){
+        if(flowlet_len_q.at(i) > max_len){ max_len=flowlet_len_q.at(i); }
+        if(flowlet_len_q.at(i) < min_len){ min_len=flowlet_len_q.at(i); }
+        total_len+=(long double)flowlet_len_q.at(i);
+        var_len+=((long double)pow(flowlet_len_q.at(i),2));
+    }
+    // store into traffic_stats
+    sh_traffic_stats.max_len_flowlet=max_len;
+    sh_traffic_stats.min_len_flowlet=min_len;
+    sh_traffic_stats.mean_len_flowlet=total_len/flowlet_len_q.size();
+    var_len = var_len/flowlet_len_q.size() - powf(max_len/flowlet_len_q.size(), 2);
+    sh_traffic_stats.std_len_flowlet=sqrtf(var_len);
+
+    // find range of distribution
+    for(int i=0;i<flowlet_len_q.size();i++){
+        if(flowlet_len_q.at(i)<sh_traffic_stats.mean_len_flowlet-3*sh_traffic_stats.std_len_flowlet){ sh_traffic_stats.flen_num_neg_ci_min++; }
+        else if(
+            (flowlet_len_q.at(i)>=sh_traffic_stats.mean_len_flowlet-3*sh_traffic_stats.std_len_flowlet) &&
+            (flowlet_len_q.at(i)<sh_traffic_stats.mean_len_flowlet-2*sh_traffic_stats.std_len_flowlet)
+        ){ sh_traffic_stats.flen_num_neg_ci_3++; }
+        else if(
+            (flowlet_len_q.at(i)>=sh_traffic_stats.mean_len_flowlet-2*sh_traffic_stats.std_len_flowlet) &&
+            (flowlet_len_q.at(i)<sh_traffic_stats.mean_len_flowlet-sh_traffic_stats.std_len_flowlet)
+        ){ sh_traffic_stats.flen_num_neg_ci_2++; }
+        else if(
+            (flowlet_len_q.at(i)>=sh_traffic_stats.mean_len_flowlet-sh_traffic_stats.std_len_flowlet) &&
+            (flowlet_len_q.at(i)<sh_traffic_stats.mean_len_flowlet)
+        ){ sh_traffic_stats.flen_num_neg_ci_1++; }
+        else if(
+            (flowlet_len_q.at(i)>=sh_traffic_stats.mean_len_flowlet) &&
+            (flowlet_len_q.at(i)<sh_traffic_stats.mean_len_flowlet+sh_traffic_stats.std_len_flowlet) 
+        ){ sh_traffic_stats.flen_num_pos_ci_1++; }
+        else if(
+            (flowlet_len_q.at(i)>=sh_traffic_stats.mean_len_flowlet+sh_traffic_stats.std_len_flowlet) &&
+            (flowlet_len_q.at(i)<sh_traffic_stats.mean_len_flowlet+2*sh_traffic_stats.std_len_flowlet)
+        ){ sh_traffic_stats.flen_num_pos_ci_2++; }
+        else if(
+            (flowlet_len_q.at(i)>=sh_traffic_stats.mean_len_flowlet+2*sh_traffic_stats.std_len_flowlet) &&
+            (flowlet_len_q.at(i)<sh_traffic_stats.mean_len_flowlet+3*sh_traffic_stats.std_len_flowlet)
+        ){ sh_traffic_stats.flen_num_pos_ci_3++; }
+        else if(
+            (flowlet_len_q.at(i)>=sh_traffic_stats.mean_len_flowlet+3*sh_traffic_stats.std_len_flowlet)
+        ){ sh_traffic_stats.flen_num_pos_ci_max++; }
+        if(flowlet_len_q.at(i)>sh_traffic_stats.flen_threshold){ sh_traffic_stats.flen_num_user_defined++; }        
+    }
 }
 
 void get_port_dist()
@@ -329,6 +437,7 @@ void print_analytics()
 void print_port_dist()
 {
     // src port - statistics
+    cout << "---------------------------------------------------------------" << endl;
     cout << "Avg. # of src port used by one flow: " << sh_traffic_stats.mean_src_port << endl;
     cout << "Std. # of src port used by one flow: " << sh_traffic_stats.std_src_port << endl;
     cout << "Max. # of src port used by one flow: " << sh_traffic_stats.max_num_sport << endl;
@@ -362,11 +471,32 @@ void print_port_dist()
     cout << "---------------------------------------------------------------" << endl;
 }
 
+void print_flen_dist()
+{
+    cout << "---------------------------------------------------------------" << endl;
+    cout << "Avg. length of flowlet: " << sh_traffic_stats.mean_len_flowlet << endl;
+    cout << "Std. length of flowlet: " << sh_traffic_stats.std_len_flowlet << endl;
+    cout << "Max. length of flowlet: " << sh_traffic_stats.max_len_flowlet << endl;
+    cout << "Min. length of flowlet: " << sh_traffic_stats.min_len_flowlet << endl;
+    cout << "Length distribution -------------------------------------------" << endl;
+    cout << "0 ~ " << sh_traffic_stats.mean_len_flowlet-3*sh_traffic_stats.std_len_flowlet << "(mean-3*std): " << sh_traffic_stats.flen_num_neg_ci_min << endl;
+    cout << "(mean-3*std) ~ " << sh_traffic_stats.mean_len_flowlet-2*sh_traffic_stats.std_len_flowlet << "(mean-2*std): " << sh_traffic_stats.flen_num_neg_ci_3 << endl;
+    cout << "(mean-2*std) ~ " << sh_traffic_stats.mean_len_flowlet-sh_traffic_stats.std_len_flowlet <<  "(mean-std): " << sh_traffic_stats.flen_num_neg_ci_2 << endl;
+    cout << "(mean-std) ~ mean: " << sh_traffic_stats.flen_num_neg_ci_1 << endl;
+    cout << "mean ~ " << sh_traffic_stats.mean_len_flowlet+sh_traffic_stats.std_len_flowlet << "(mean+std): " << sh_traffic_stats.flen_num_pos_ci_1 << endl;
+    cout << "(mean+std) ~ " << sh_traffic_stats.mean_len_flowlet+2*sh_traffic_stats.std_len_flowlet << "(mean+2*std): " << sh_traffic_stats.flen_num_pos_ci_2 << endl;
+    cout << "(mean+2*std) ~ " << sh_traffic_stats.mean_len_flowlet+3*sh_traffic_stats.std_len_flowlet << "(mean+3*std): " << sh_traffic_stats.flen_num_pos_ci_3 << endl;
+    cout << "> mean+3*std: " << sh_traffic_stats.flen_num_pos_ci_max << endl; 
+    cout << "(> User-defined threshold- " << sh_traffic_stats.flen_threshold << "): " << sh_traffic_stats.flen_num_user_defined << endl;
+    cout << "---------------------------------------------------------------" << endl;
+}
+
 void ls()
 {
     print_basic();
     print_analytics();
     print_port_dist();
+    print_flen_dist();
 }
 
 void print_help()
