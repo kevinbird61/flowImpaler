@@ -125,7 +125,6 @@ int sh_execute(vector<string> args)
 
 void ptop(double threshold)
 {
-    int num_exceed_pt=0;
     cout << "---------------------------------------------------------------" << endl;
     // check
     if(threshold!=sh_traffic_stats.port_threshold){
@@ -137,14 +136,13 @@ void ptop(double threshold)
                 for(map<string, flow_t>::iterator dst=sh_flow_stats[src->first].pktcnt.begin(); 
                     dst!=sh_flow_stats[src->first].pktcnt.end(); dst++){
                         if(dst->second.dport_unique.size() > threshold){
-                            num_exceed_pt++;
                             sh_traffic_stats.pt_q.push_back(src->first+"->"+dst->first);
                         }
                     }
             }
         // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
         sh_traffic_stats.port_threshold=threshold;
-        sh_traffic_stats.dp_num_user_defined=num_exceed_pt;
+        sh_traffic_stats.dp_num_user_defined=sh_traffic_stats.pt_q.size();
         // FIXME: also need to update src port distribution ? (does this necessary ?)
 
     }
@@ -152,14 +150,13 @@ void ptop(double threshold)
     for(auto i=0; i<sh_traffic_stats.pt_q.size(); i++){
         cout << sh_traffic_stats.pt_q.at(i) << endl;
     }
-    cout << "# of flows:" << num_exceed_pt << endl;
+    cout << "# of flows:" << sh_traffic_stats.pt_q.size() << endl;
     cout << "List # of flows that surpass port threshold: " << threshold << endl;
     cout << "---------------------------------------------------------------" << endl;
 }
 
 void ftop(double threshold)
 {
-    int num_exceed_ft=0;
     cout << "---------------------------------------------------------------" << endl;
     // check
     if(threshold!=sh_traffic_stats.flen_threshold){
@@ -172,7 +169,6 @@ void ftop(double threshold)
                     dst!=sh_flow_stats[src->first].pktcnt.end(); dst++){
                         for(int i=0; i<dst->second.flowlet_q.size(); i++){
                             if(dst->second.flowlet_q.at(i)>threshold){
-                                num_exceed_ft++;
                                 sh_traffic_stats.ft_q.push_back(src->first+"->"+dst->first);
                                 break; // we only need to check which flow has flowlet length > threshold
                             }
@@ -181,7 +177,7 @@ void ftop(double threshold)
             }
         // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
         sh_traffic_stats.flen_threshold=threshold;
-        sh_traffic_stats.flen_num_user_defined=num_exceed_ft;
+        sh_traffic_stats.flen_num_user_defined=sh_traffic_stats.ft_q.size();
 
     }
     
@@ -189,7 +185,7 @@ void ftop(double threshold)
     for(auto i=0; i<sh_traffic_stats.ft_q.size(); i++){
         cout << sh_traffic_stats.ft_q.at(i) << endl;
     }
-    cout << "# of flows:" << num_exceed_ft << endl;
+    cout << "# of flows:" << sh_traffic_stats.ft_q.size() << endl;
     cout << "List # of flows that surpass flowlet length threshold: " << threshold << endl;
     cout << "---------------------------------------------------------------" << endl;
 }
@@ -197,7 +193,6 @@ void ftop(double threshold)
 void rtop(double threshold)
 {
     cout << "---------------------------------------------------------------" << endl;
-    int num_exceed=0;
     // check
     if(threshold!=sh_traffic_stats.rst_threshold){
         sh_traffic_stats.rt_q.clear();
@@ -208,21 +203,20 @@ void rtop(double threshold)
                 for(map<string, flow_t>::iterator dst=sh_flow_stats[src->first].pktcnt.begin(); 
                     dst!=sh_flow_stats[src->first].pktcnt.end(); dst++){
                         if(dst->second.recv_rst>threshold){
-                            num_exceed++;
                             sh_traffic_stats.rt_q.push_back(src->first+"->"+dst->first);
                         }
                     }
             }
         // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
         sh_traffic_stats.rst_threshold=threshold;
-        sh_traffic_stats.rst_num_user_defined=num_exceed;
+        sh_traffic_stats.rst_num_user_defined=sh_traffic_stats.rt_q.size();
     }
 
     // print the flows that meet the condition
     for(auto i=0; i<sh_traffic_stats.rt_q.size(); i++){
         cout << sh_traffic_stats.rt_q.at(i) << endl;
     }
-    cout << "# of flows:" << num_exceed << endl;
+    cout << "# of flows:" << sh_traffic_stats.rt_q.size() << endl;
     cout << "List # of flows that surpass rst threshold: " << threshold << endl;
     cout << "---------------------------------------------------------------" << endl;
 }
@@ -230,7 +224,6 @@ void rtop(double threshold)
 void i3top(double threshold)
 {
     cout << "---------------------------------------------------------------" << endl;
-    int num_exceed=0;
     // check
     if(threshold!=sh_traffic_stats.icmp3_threshold){
         sh_traffic_stats.it_q.clear();
@@ -241,21 +234,20 @@ void i3top(double threshold)
                 for(map<string, flow_t>::iterator dst=sh_flow_stats[src->first].pktcnt.begin(); 
                     dst!=sh_flow_stats[src->first].pktcnt.end(); dst++){
                         if(dst->second.unreachable_cnt>threshold){
-                            num_exceed++;
                             sh_traffic_stats.it_q.push_back(src->first+"->"+dst->first);
                         }
                     }
             }
         // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
         sh_traffic_stats.icmp3_threshold=threshold;
-        sh_traffic_stats.icmp_num_user_defined=num_exceed;
+        sh_traffic_stats.icmp_num_user_defined=sh_traffic_stats.it_q.size();
     }
 
     // print the flows that meet the condition
     for(auto i=0; i<sh_traffic_stats.it_q.size(); i++){
         cout << sh_traffic_stats.it_q.at(i) << endl;
     }
-    cout << "# of flows:" << num_exceed << endl;
+    cout << "# of flows:" << sh_traffic_stats.it_q.size() << endl;
     cout << "List # of flows that surpass icmp3 threshold: " << threshold << endl;
     cout << "---------------------------------------------------------------" << endl;
 }
@@ -656,14 +648,11 @@ void print_port_dist()
     cout << "Max. # of src port used by one flow: " << sh_traffic_stats.max_num_sport << endl;
     cout << "Min. # of src port used by one flow: " << sh_traffic_stats.min_num_sport << endl;
     cout << "# of src port used: -------------------------------------------" << endl;
-    cout << "0 ~ " << sh_traffic_stats.mean_src_port-3*sh_traffic_stats.std_src_port << "(mean-3*std): " << sh_traffic_stats.sp_num_neg_ci_min << endl;
-    cout << "(mean-3*std) ~ " << sh_traffic_stats.mean_src_port-2*sh_traffic_stats.std_src_port << "(mean-2*std): " << sh_traffic_stats.sp_num_neg_ci_3 << endl;
-    cout << "(mean-2*std) ~ " << sh_traffic_stats.mean_src_port-sh_traffic_stats.std_src_port <<  "(mean-std): " << sh_traffic_stats.sp_num_neg_ci_2 << endl;
-    cout << "(mean-std) ~ mean: " << sh_traffic_stats.sp_num_neg_ci_1 << endl;
-    cout << "mean ~ " << sh_traffic_stats.mean_src_port+sh_traffic_stats.std_src_port << "(mean+std): " << sh_traffic_stats.sp_num_pos_ci_1 << endl;
-    cout << "(mean+std) ~ " << sh_traffic_stats.mean_src_port+2*sh_traffic_stats.std_src_port << "(mean+2*std): " << sh_traffic_stats.sp_num_pos_ci_2 << endl;
-    cout << "(mean+2*std) ~ " << sh_traffic_stats.mean_src_port+3*sh_traffic_stats.std_src_port << "(mean+3*std): " << sh_traffic_stats.sp_num_pos_ci_3 << endl;
-    cout << "> mean+3*std: " << sh_traffic_stats.sp_num_pos_ci_max << endl; 
+
+    print_dist_table(sh_traffic_stats.mean_src_port, sh_traffic_stats.std_src_port,
+        sh_traffic_stats.sp_num_neg_ci_min, sh_traffic_stats.sp_num_neg_ci_3, sh_traffic_stats.sp_num_neg_ci_2, sh_traffic_stats.sp_num_neg_ci_1,
+        sh_traffic_stats.sp_num_pos_ci_1, sh_traffic_stats.sp_num_pos_ci_2, sh_traffic_stats.sp_num_pos_ci_3, sh_traffic_stats.sp_num_pos_ci_max);  
+
     cout << "(> User-defined threshold- " << sh_traffic_stats.port_threshold << "): " << sh_traffic_stats.sp_num_user_defined << endl;
     cout << "---------------------------------------------------------------" << endl;
     // dst port - statistics
@@ -672,14 +661,11 @@ void print_port_dist()
     cout << "Max. # of dst port used by one flow: " << sh_traffic_stats.max_num_dport << endl;
     cout << "Min. # of dst port used by one flow: " << sh_traffic_stats.min_num_dport << endl;
     cout << "# of dst port used: -------------------------------------------" << endl;
-    cout << "0 ~ " << sh_traffic_stats.mean_dst_port-3*sh_traffic_stats.std_dst_port << "(mean-3*std): " << sh_traffic_stats.dp_num_neg_ci_min << endl;
-    cout << "(mean-3*std) ~ " << sh_traffic_stats.mean_dst_port-2*sh_traffic_stats.std_dst_port << "(mean-2*std): " << sh_traffic_stats.dp_num_neg_ci_3 << endl;
-    cout << "(mean-2*std) ~ " << sh_traffic_stats.mean_dst_port-sh_traffic_stats.std_dst_port <<  "(mean-std): " << sh_traffic_stats.dp_num_neg_ci_2 << endl;
-    cout << "(mean-std) ~ mean: " << sh_traffic_stats.dp_num_neg_ci_1 << endl;
-    cout << "mean ~ " << sh_traffic_stats.mean_dst_port+sh_traffic_stats.std_dst_port << "(mean+std): " << sh_traffic_stats.dp_num_pos_ci_1 << endl;
-    cout << "(mean+std) ~ " << sh_traffic_stats.mean_dst_port+2*sh_traffic_stats.std_dst_port << "(mean+2*std): " << sh_traffic_stats.dp_num_pos_ci_2 << endl;
-    cout << "(mean+2*std) ~ " << sh_traffic_stats.mean_dst_port+3*sh_traffic_stats.std_dst_port << "(mean+3*std): " << sh_traffic_stats.dp_num_pos_ci_3 << endl;
-    cout << "> mean+3*std: " << sh_traffic_stats.dp_num_pos_ci_max << endl; 
+
+    print_dist_table(sh_traffic_stats.mean_dst_port, sh_traffic_stats.std_dst_port,
+        sh_traffic_stats.dp_num_neg_ci_min, sh_traffic_stats.dp_num_neg_ci_3, sh_traffic_stats.dp_num_neg_ci_2, sh_traffic_stats.dp_num_neg_ci_1,
+        sh_traffic_stats.dp_num_pos_ci_1, sh_traffic_stats.dp_num_pos_ci_2, sh_traffic_stats.dp_num_pos_ci_3, sh_traffic_stats.dp_num_pos_ci_max);    
+
     cout << "(> User-defined threshold- " << sh_traffic_stats.port_threshold << "): " << sh_traffic_stats.dp_num_user_defined << endl;
     cout << "---------------------------------------------------------------" << endl;
 }
@@ -692,14 +678,11 @@ void print_flen_dist()
     cout << "Max. length of flowlet: " << sh_traffic_stats.max_len_flowlet << endl;
     cout << "Min. length of flowlet: " << sh_traffic_stats.min_len_flowlet << endl;
     cout << "Length distribution -------------------------------------------" << endl;
-    cout << "0 ~ " << sh_traffic_stats.mean_len_flowlet-3*sh_traffic_stats.std_len_flowlet << "(mean-3*std): " << sh_traffic_stats.flen_num_neg_ci_min << endl;
-    cout << "(mean-3*std) ~ " << sh_traffic_stats.mean_len_flowlet-2*sh_traffic_stats.std_len_flowlet << "(mean-2*std): " << sh_traffic_stats.flen_num_neg_ci_3 << endl;
-    cout << "(mean-2*std) ~ " << sh_traffic_stats.mean_len_flowlet-sh_traffic_stats.std_len_flowlet <<  "(mean-std): " << sh_traffic_stats.flen_num_neg_ci_2 << endl;
-    cout << "(mean-std) ~ mean: " << sh_traffic_stats.flen_num_neg_ci_1 << endl;
-    cout << "mean ~ " << sh_traffic_stats.mean_len_flowlet+sh_traffic_stats.std_len_flowlet << "(mean+std): " << sh_traffic_stats.flen_num_pos_ci_1 << endl;
-    cout << "(mean+std) ~ " << sh_traffic_stats.mean_len_flowlet+2*sh_traffic_stats.std_len_flowlet << "(mean+2*std): " << sh_traffic_stats.flen_num_pos_ci_2 << endl;
-    cout << "(mean+2*std) ~ " << sh_traffic_stats.mean_len_flowlet+3*sh_traffic_stats.std_len_flowlet << "(mean+3*std): " << sh_traffic_stats.flen_num_pos_ci_3 << endl;
-    cout << "> mean+3*std: " << sh_traffic_stats.flen_num_pos_ci_max << endl; 
+
+    print_dist_table(sh_traffic_stats.mean_len_flowlet, sh_traffic_stats.std_len_flowlet,
+        sh_traffic_stats.flen_num_neg_ci_min, sh_traffic_stats.flen_num_neg_ci_3, sh_traffic_stats.flen_num_neg_ci_2, sh_traffic_stats.flen_num_neg_ci_1,
+        sh_traffic_stats.flen_num_pos_ci_1, sh_traffic_stats.flen_num_pos_ci_2, sh_traffic_stats.flen_num_pos_ci_3, sh_traffic_stats.flen_num_pos_ci_max);    
+
     cout << "(> User-defined threshold- " << sh_traffic_stats.flen_threshold << "): " << sh_traffic_stats.flen_num_user_defined << endl;
     cout << "---------------------------------------------------------------" << endl;
 }
@@ -712,14 +695,11 @@ void print_rst_dist()
     cout << "Max. num of rst (per flow): " << sh_traffic_stats.max_num_rst << endl;
     cout << "Min. num of rst (per flow): " << sh_traffic_stats.min_num_rst << endl;
     cout << "# of RST dist -------------------------------------------------" << endl;
-    cout << "0 ~ " << sh_traffic_stats.mean_rst-3*sh_traffic_stats.std_rst << "(mean-3*std): " << sh_traffic_stats.rst_num_ncmin << endl;
-    cout << "(mean-3*std) ~ " << sh_traffic_stats.mean_rst-2*sh_traffic_stats.std_rst << "(mean-2*std): " << sh_traffic_stats.rst_num_nc3 << endl;
-    cout << "(mean-2*std) ~ " << sh_traffic_stats.mean_rst-sh_traffic_stats.std_rst <<  "(mean-std): " << sh_traffic_stats.rst_num_nc2 << endl;
-    cout << "(mean-std) ~ mean: " << sh_traffic_stats.rst_num_nc1 << endl;
-    cout << "mean ~ " << sh_traffic_stats.mean_rst+sh_traffic_stats.std_rst << "(mean+std): " << sh_traffic_stats.rst_num_pc1 << endl;
-    cout << "(mean+std) ~ " << sh_traffic_stats.mean_rst+2*sh_traffic_stats.std_rst << "(mean+2*std): " << sh_traffic_stats.rst_num_pc2 << endl;
-    cout << "(mean+2*std) ~ " << sh_traffic_stats.mean_rst+3*sh_traffic_stats.std_rst << "(mean+3*std): " << sh_traffic_stats.rst_num_pc3 << endl;
-    cout << "> mean+3*std: " << sh_traffic_stats.rst_num_pcmax << endl; 
+
+    print_dist_table(sh_traffic_stats.mean_rst, sh_traffic_stats.std_rst,
+        sh_traffic_stats.rst_num_ncmin, sh_traffic_stats.rst_num_nc3, sh_traffic_stats.rst_num_nc2, sh_traffic_stats.rst_num_nc1,
+        sh_traffic_stats.rst_num_pc1, sh_traffic_stats.rst_num_pc2, sh_traffic_stats.rst_num_pc3, sh_traffic_stats.rst_num_pcmax);    
+    
     cout << "(> User-defined threshold- " << sh_traffic_stats.rst_threshold << "): " << sh_traffic_stats.rst_num_user_defined << endl;
     cout << "---------------------------------------------------------------" << endl;
 }
@@ -732,16 +712,39 @@ void print_icmp_dist()
     cout << "Max. num of icmp (per flow): " << sh_traffic_stats.max_num_icmp_ur << endl;
     cout << "Min. num of icmp (per flow): " << sh_traffic_stats.min_num_icmp_ur << endl;
     cout << "# of ICMP dist ------------------------------------------------" << endl;
-    cout << "0 ~ " << sh_traffic_stats.mean_icmp_ur-3*sh_traffic_stats.std_icmp_ur << "(mean-3*std): " << sh_traffic_stats.icmp_num_ncmin << endl;
-    cout << "(mean-3*std) ~ " << sh_traffic_stats.mean_icmp_ur-2*sh_traffic_stats.std_icmp_ur << "(mean-2*std): " << sh_traffic_stats.icmp_num_nc3 << endl;
-    cout << "(mean-2*std) ~ " << sh_traffic_stats.mean_icmp_ur-sh_traffic_stats.std_icmp_ur <<  "(mean-std): " << sh_traffic_stats.icmp_num_nc2 << endl;
-    cout << "(mean-std) ~ mean: " << sh_traffic_stats.icmp_num_nc1 << endl;
-    cout << "mean ~ " << sh_traffic_stats.mean_icmp_ur+sh_traffic_stats.std_icmp_ur << "(mean+std): " << sh_traffic_stats.icmp_num_pc1 << endl;
-    cout << "(mean+std) ~ " << sh_traffic_stats.mean_icmp_ur+2*sh_traffic_stats.std_icmp_ur << "(mean+2*std): " << sh_traffic_stats.icmp_num_pc2 << endl;
-    cout << "(mean+2*std) ~ " << sh_traffic_stats.mean_icmp_ur+3*sh_traffic_stats.std_icmp_ur << "(mean+3*std): " << sh_traffic_stats.icmp_num_pc3 << endl;
-    cout << "> mean+3*std: " << sh_traffic_stats.icmp_num_pcmax << endl; 
+
+    print_dist_table(sh_traffic_stats.mean_icmp_ur, sh_traffic_stats.std_icmp_ur,
+        sh_traffic_stats.icmp_num_ncmin, sh_traffic_stats.icmp_num_nc3, sh_traffic_stats.icmp_num_nc2, sh_traffic_stats.icmp_num_nc1,
+        sh_traffic_stats.icmp_num_pc1, sh_traffic_stats.icmp_num_pc2, sh_traffic_stats.icmp_num_pc3, sh_traffic_stats.icmp_num_pcmax);    
+    
     cout << "(> User-defined threshold- " << sh_traffic_stats.icmp3_threshold << "): " << sh_traffic_stats.icmp_num_user_defined << endl;
     cout << "---------------------------------------------------------------" << endl;
+}
+
+void print_dist_table(double mean, double std, 
+    double ncmin, double nc3, double nc2, double nc1,
+    double pc1, double pc2, double pc3, double pcmax)
+{
+    cout << "| " << setw(25) << "0 ~ mean-3*std"  << " | " << setw(25) << "mean-3*std ~ mean-2*std" << " | "
+        << setw(25) << "mean-2*std ~ mean-std" << " | " << setw(25) << "mean-std ~ mean" << " | " 
+        << setw(25) << "mean ~ mean+std" << " | " << setw(25) << "mean+std ~ mean+2*std" << " | "
+        << setw(25) << "mean+2*std ~ mean+3*std" << " | " << setw(25) << " > mean+3*std" << " | " << endl;
+    cout << "| " << setw(25) << mean-3*std << " | " 
+        << setw(25) << mean-2*std << " | "
+        << setw(25) << mean-std << " | " 
+        << setw(25) << mean << " | " 
+        << setw(25) << mean+std << " | " 
+        << setw(25) << mean+2*std << " | "
+        << setw(25) << mean+3*std << " | " 
+        << setw(25) << " > prev" << " | " << endl;
+    cout << "| " << setw(25) << "----------------------" << " | " << setw(25) << "----------------------" << " | "
+        << setw(25) << "----------------------" << " | " << setw(25) << "----------------------" << " | " 
+        << setw(25) << "----------------------" << " | " << setw(25) << "----------------------" << " | "
+        << setw(25) << "----------------------" << " | " << setw(25) << "----------------------" << " | " << endl;
+    cout << "| " << setw(25) << ncmin << " | " << setw(25) << nc3 << " | "
+        << setw(25) << nc2 << " | " << setw(25) << nc1 << " | " 
+        << setw(25) << pc1 << " | " << setw(25) << pc2 << " | "
+        << setw(25) << pc3 << " | " << setw(25) << pcmax << " | " << endl;
 }
 
 void ls()

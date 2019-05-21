@@ -4,8 +4,9 @@
 #include "header.h"
 #include "stats.h"
 
-#include <iostream>
 #include <pthread.h>
+#include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <fstream>
 #include <string>
@@ -42,6 +43,10 @@ void print_port_dist();     // port distribution
 void print_flen_dist();     // flowlet length distribution
 void print_rst_dist();
 void print_icmp_dist();
+
+void print_dist_table(double mean, double std, 
+    double ncmin, double nc3, double nc2, double nc1,
+    double pc1, double pc2, double pc3, double pcmax);
 
 // log, helper function
 void print_help();
