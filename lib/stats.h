@@ -50,6 +50,13 @@ typedef struct _flow_stats_t {
     map<string, flow_t> pktcnt;     // packet count 
 } flow_stats_t;
 
+typedef struct _dist_t {
+    double max, min, mean, std;
+    double pc1, pc2, pc3, pcmax;
+    double nc1, nc2, nc3, ncmin;
+    double user_defined;
+} dist_t;
+
 typedef struct _traffic_t {
     map<string, flow_stats_t> flow_stats;   // flow_stats
     // config/user setting, from config file or argparse
@@ -66,31 +73,18 @@ typedef struct _traffic_t {
     long int total_flow_size;
     string filename;
     unsigned long int pktcnt, arpcnt, ipv4cnt, ipv6cnt, icmpcnt, tcpcnt, udpcnt;
+    // sent/recv ratio
+    dist_t sr_ratio;
     // tcp control flag 
-    double max_num_rst, min_num_rst, mean_rst, std_rst;
-    double rst_num_pc1, rst_num_pc2, rst_num_pc3, rst_num_pcmax;
-    double rst_num_nc1, rst_num_nc2, rst_num_nc3, rst_num_ncmin;
-    double rst_num_user_defined;
+    dist_t rst_num;
     // icmp unreachable 
-    double max_num_icmp_ur, min_num_icmp_ur, mean_icmp_ur, std_icmp_ur;
-    double icmp_num_pc1, icmp_num_pc2, icmp_num_pc3, icmp_num_pcmax;
-    double icmp_num_nc1, icmp_num_nc2, icmp_num_nc3, icmp_num_ncmin;
-    double icmp_num_user_defined;
+    dist_t icmp_ur_num;
     // flowlet length distribution
-    double max_len_flowlet, min_len_flowlet, mean_len_flowlet, std_len_flowlet;
-    double flen_num_pos_ci_1, flen_num_pos_ci_2, flen_num_pos_ci_3, flen_num_pos_ci_max;
-    double flen_num_neg_ci_1, flen_num_neg_ci_2, flen_num_neg_ci_3, flen_num_neg_ci_min;
-    double flen_num_user_defined;
+    dist_t flen;
     // dst port distribution 
-    double max_num_dport, min_num_dport, mean_dst_port, std_dst_port;
-    double dp_num_pos_ci_1, dp_num_pos_ci_2, dp_num_pos_ci_3, dp_num_pos_ci_max;
-    double dp_num_neg_ci_1, dp_num_neg_ci_2, dp_num_neg_ci_3, dp_num_neg_ci_min;
-    double dp_num_user_defined;
+    dist_t dport;
     // src port 
-    double max_num_sport, min_num_sport, mean_src_port, std_src_port;
-    double sp_num_pos_ci_1, sp_num_pos_ci_2, sp_num_pos_ci_3, sp_num_pos_ci_max;
-    double sp_num_neg_ci_1, sp_num_neg_ci_2, sp_num_neg_ci_3, sp_num_neg_ci_min;
-    double sp_num_user_defined;
+    dist_t sport;
 } traffic_t;
 
 #endif

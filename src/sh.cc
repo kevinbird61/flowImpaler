@@ -142,7 +142,7 @@ void ptop(double threshold)
             }
         // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
         sh_traffic_stats.port_threshold=threshold;
-        sh_traffic_stats.dp_num_user_defined=sh_traffic_stats.pt_q.size();
+        sh_traffic_stats.dport.user_defined=sh_traffic_stats.pt_q.size();
         // FIXME: also need to update src port distribution ? (does this necessary ?)
 
     }
@@ -177,7 +177,7 @@ void ftop(double threshold)
             }
         // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
         sh_traffic_stats.flen_threshold=threshold;
-        sh_traffic_stats.flen_num_user_defined=sh_traffic_stats.ft_q.size();
+        sh_traffic_stats.flen.user_defined=sh_traffic_stats.ft_q.size();
 
     }
     
@@ -209,7 +209,7 @@ void rtop(double threshold)
             }
         // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
         sh_traffic_stats.rst_threshold=threshold;
-        sh_traffic_stats.rst_num_user_defined=sh_traffic_stats.rt_q.size();
+        sh_traffic_stats.rst_num.user_defined=sh_traffic_stats.rt_q.size();
     }
 
     // print the flows that meet the condition
@@ -240,7 +240,7 @@ void i3top(double threshold)
             }
         // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
         sh_traffic_stats.icmp3_threshold=threshold;
-        sh_traffic_stats.icmp_num_user_defined=sh_traffic_stats.it_q.size();
+        sh_traffic_stats.icmp_ur_num.user_defined=sh_traffic_stats.it_q.size();
     }
 
     // print the flows that meet the condition
@@ -275,42 +275,42 @@ void *get_rst_dist(void* args)
         var+=pow(rst_q.at(i),2);
     }
     // store 
-    sh_traffic_stats.max_num_rst=max;
-    sh_traffic_stats.min_num_rst=min;
-    sh_traffic_stats.mean_rst=total/rst_q.size();
-    sh_traffic_stats.std_rst=sqrtf(var);
+    sh_traffic_stats.rst_num.max=max;
+    sh_traffic_stats.rst_num.min=min;
+    sh_traffic_stats.rst_num.mean=total/rst_q.size();
+    sh_traffic_stats.rst_num.std=sqrtf(var);
     // range of dist
     for(int i=0;i<rst_q.size();i++){
-        if(rst_q.at(i)<sh_traffic_stats.mean_rst-3*sh_traffic_stats.std_rst)
-            {sh_traffic_stats.rst_num_ncmin++;}
+        if(rst_q.at(i)<sh_traffic_stats.rst_num.mean-3*sh_traffic_stats.rst_num.std)
+            {sh_traffic_stats.rst_num.ncmin++;}
         else if(
-            (rst_q.at(i)>=sh_traffic_stats.mean_rst-3*sh_traffic_stats.std_rst)&&
-            (rst_q.at(i)<sh_traffic_stats.mean_rst-2*sh_traffic_stats.std_rst)
-        ){ sh_traffic_stats.rst_num_nc3++; }
+            (rst_q.at(i)>=sh_traffic_stats.rst_num.mean-3*sh_traffic_stats.rst_num.std)&&
+            (rst_q.at(i)<sh_traffic_stats.rst_num.mean-2*sh_traffic_stats.rst_num.std)
+        ){ sh_traffic_stats.rst_num.nc3++; }
         else if(
-            (rst_q.at(i)>=sh_traffic_stats.mean_rst-2*sh_traffic_stats.std_rst)&&
-            (rst_q.at(i)<sh_traffic_stats.mean_rst-sh_traffic_stats.std_rst)
-        ){ sh_traffic_stats.rst_num_nc2++; }
+            (rst_q.at(i)>=sh_traffic_stats.rst_num.mean-2*sh_traffic_stats.rst_num.std)&&
+            (rst_q.at(i)<sh_traffic_stats.rst_num.mean-sh_traffic_stats.rst_num.std)
+        ){ sh_traffic_stats.rst_num.nc2++; }
         else if(
-            (rst_q.at(i)>=sh_traffic_stats.mean_rst-sh_traffic_stats.std_rst)&&
-            (rst_q.at(i)<sh_traffic_stats.mean_rst)
-        ){ sh_traffic_stats.rst_num_nc1++; }
+            (rst_q.at(i)>=sh_traffic_stats.rst_num.mean-sh_traffic_stats.rst_num.std)&&
+            (rst_q.at(i)<sh_traffic_stats.rst_num.mean)
+        ){ sh_traffic_stats.rst_num.nc1++; }
         else if(
-            (rst_q.at(i)>=sh_traffic_stats.mean_rst)&&
-            (rst_q.at(i)<sh_traffic_stats.mean_rst+sh_traffic_stats.std_rst)
-        ){ sh_traffic_stats.rst_num_pc1++; }
+            (rst_q.at(i)>=sh_traffic_stats.rst_num.mean)&&
+            (rst_q.at(i)<sh_traffic_stats.rst_num.mean+sh_traffic_stats.rst_num.std)
+        ){ sh_traffic_stats.rst_num.pc1++; }
         else if(
-            (rst_q.at(i)>=sh_traffic_stats.mean_rst+sh_traffic_stats.std_rst)&&
-            (rst_q.at(i)<sh_traffic_stats.mean_rst+2*sh_traffic_stats.std_rst)
-        ){ sh_traffic_stats.rst_num_pc2++; }
+            (rst_q.at(i)>=sh_traffic_stats.rst_num.mean+sh_traffic_stats.rst_num.std)&&
+            (rst_q.at(i)<sh_traffic_stats.rst_num.mean+2*sh_traffic_stats.rst_num.std)
+        ){ sh_traffic_stats.rst_num.pc2++; }
         else if(
-            (rst_q.at(i)>=sh_traffic_stats.mean_rst+2*sh_traffic_stats.std_rst)&&
-            (rst_q.at(i)<sh_traffic_stats.mean_rst+3*sh_traffic_stats.std_rst)
-        ){ sh_traffic_stats.rst_num_pc3++; }
+            (rst_q.at(i)>=sh_traffic_stats.rst_num.mean+2*sh_traffic_stats.rst_num.std)&&
+            (rst_q.at(i)<sh_traffic_stats.rst_num.mean+3*sh_traffic_stats.rst_num.std)
+        ){ sh_traffic_stats.rst_num.pc3++; }
         else if(
-            (rst_q.at(i)>=sh_traffic_stats.mean_rst+3*sh_traffic_stats.std_rst)
-        ){ sh_traffic_stats.rst_num_pcmax++; }
-        if(rst_q.at(i)>sh_traffic_stats.rst_threshold){ sh_traffic_stats.rst_num_user_defined++; }
+            (rst_q.at(i)>=sh_traffic_stats.rst_num.mean+3*sh_traffic_stats.rst_num.std)
+        ){ sh_traffic_stats.rst_num.pcmax++; }
+        if(rst_q.at(i)>sh_traffic_stats.rst_threshold){ sh_traffic_stats.rst_num.user_defined++; }
     }
 }
 
@@ -337,43 +337,43 @@ void *get_icmp_ur_dist(void* args)
         var+=pow(icmp_q.at(i),2);
     }
     // store 
-    sh_traffic_stats.max_num_icmp_ur=max;
-    sh_traffic_stats.min_num_icmp_ur=min;
-    sh_traffic_stats.mean_icmp_ur=total/icmp_q.size();
-    sh_traffic_stats.std_icmp_ur=sqrtf(var);
+    sh_traffic_stats.icmp_ur_num.max=max;
+    sh_traffic_stats.icmp_ur_num.min=min;
+    sh_traffic_stats.icmp_ur_num.mean=total/icmp_q.size();
+    sh_traffic_stats.icmp_ur_num.std=sqrtf(var);
     // range of dist
     // range of dist
     for(int i=0;i<icmp_q.size();i++){
-        if(icmp_q.at(i)<sh_traffic_stats.mean_icmp_ur-3*sh_traffic_stats.std_icmp_ur)
-            {sh_traffic_stats.icmp_num_ncmin++;}
+        if(icmp_q.at(i)<sh_traffic_stats.icmp_ur_num.mean-3*sh_traffic_stats.icmp_ur_num.std)
+            {sh_traffic_stats.icmp_ur_num.ncmin++;}
         else if(
-            (icmp_q.at(i)>=sh_traffic_stats.mean_icmp_ur-3*sh_traffic_stats.std_icmp_ur)&&
-            (icmp_q.at(i)<sh_traffic_stats.mean_icmp_ur-2*sh_traffic_stats.std_icmp_ur)
-        ){ sh_traffic_stats.icmp_num_nc3++; }
+            (icmp_q.at(i)>=sh_traffic_stats.icmp_ur_num.mean-3*sh_traffic_stats.icmp_ur_num.std)&&
+            (icmp_q.at(i)<sh_traffic_stats.icmp_ur_num.mean-2*sh_traffic_stats.icmp_ur_num.std)
+        ){ sh_traffic_stats.icmp_ur_num.nc3++; }
         else if(
-            (icmp_q.at(i)>=sh_traffic_stats.mean_icmp_ur-2*sh_traffic_stats.std_icmp_ur)&&
-            (icmp_q.at(i)<sh_traffic_stats.mean_icmp_ur-sh_traffic_stats.std_icmp_ur)
-        ){ sh_traffic_stats.icmp_num_nc2++; }
+            (icmp_q.at(i)>=sh_traffic_stats.icmp_ur_num.mean-2*sh_traffic_stats.icmp_ur_num.std)&&
+            (icmp_q.at(i)<sh_traffic_stats.icmp_ur_num.mean-sh_traffic_stats.icmp_ur_num.std)
+        ){ sh_traffic_stats.icmp_ur_num.nc2++; }
         else if(
-            (icmp_q.at(i)>=sh_traffic_stats.mean_icmp_ur-sh_traffic_stats.std_icmp_ur)&&
-            (icmp_q.at(i)<sh_traffic_stats.mean_icmp_ur)
-        ){ sh_traffic_stats.icmp_num_nc1++; }
+            (icmp_q.at(i)>=sh_traffic_stats.icmp_ur_num.mean-sh_traffic_stats.icmp_ur_num.std)&&
+            (icmp_q.at(i)<sh_traffic_stats.icmp_ur_num.mean)
+        ){ sh_traffic_stats.icmp_ur_num.nc1++; }
         else if(
-            (icmp_q.at(i)>=sh_traffic_stats.mean_icmp_ur)&&
-            (icmp_q.at(i)<sh_traffic_stats.mean_icmp_ur+sh_traffic_stats.std_icmp_ur)
-        ){ sh_traffic_stats.icmp_num_pc1++; }
+            (icmp_q.at(i)>=sh_traffic_stats.icmp_ur_num.mean)&&
+            (icmp_q.at(i)<sh_traffic_stats.icmp_ur_num.mean+sh_traffic_stats.icmp_ur_num.std)
+        ){ sh_traffic_stats.icmp_ur_num.pc1++; }
         else if(
-            (icmp_q.at(i)>=sh_traffic_stats.mean_icmp_ur+sh_traffic_stats.std_icmp_ur)&&
-            (icmp_q.at(i)<sh_traffic_stats.mean_icmp_ur+2*sh_traffic_stats.std_icmp_ur)
-        ){ sh_traffic_stats.icmp_num_pc2++; }
+            (icmp_q.at(i)>=sh_traffic_stats.icmp_ur_num.mean+sh_traffic_stats.icmp_ur_num.std)&&
+            (icmp_q.at(i)<sh_traffic_stats.icmp_ur_num.mean+2*sh_traffic_stats.icmp_ur_num.std)
+        ){ sh_traffic_stats.icmp_ur_num.pc2++; }
         else if(
-            (icmp_q.at(i)>=sh_traffic_stats.mean_icmp_ur+2*sh_traffic_stats.std_icmp_ur)&&
-            (icmp_q.at(i)<sh_traffic_stats.mean_icmp_ur+3*sh_traffic_stats.std_icmp_ur)
-        ){ sh_traffic_stats.icmp_num_pc3++; }
+            (icmp_q.at(i)>=sh_traffic_stats.icmp_ur_num.mean+2*sh_traffic_stats.icmp_ur_num.std)&&
+            (icmp_q.at(i)<sh_traffic_stats.icmp_ur_num.mean+3*sh_traffic_stats.icmp_ur_num.std)
+        ){ sh_traffic_stats.icmp_ur_num.pc3++; }
         else if(
-            (icmp_q.at(i)>=sh_traffic_stats.mean_icmp_ur+3*sh_traffic_stats.std_icmp_ur)
-        ){ sh_traffic_stats.icmp_num_pcmax++; }
-        if(icmp_q.at(i)>sh_traffic_stats.icmp3_threshold){ sh_traffic_stats.icmp_num_user_defined++; }
+            (icmp_q.at(i)>=sh_traffic_stats.icmp_ur_num.mean+3*sh_traffic_stats.icmp_ur_num.std)
+        ){ sh_traffic_stats.icmp_ur_num.pcmax++; }
+        if(icmp_q.at(i)>sh_traffic_stats.icmp3_threshold){ sh_traffic_stats.icmp_ur_num.user_defined++; }
     }
 }
 
@@ -401,43 +401,44 @@ void *get_flowlet_dist(void* args)
         var_len+=((long double)pow(flowlet_len_q.at(i),2));
     }
     // store into traffic_stats
-    sh_traffic_stats.max_len_flowlet=max_len;
-    sh_traffic_stats.min_len_flowlet=min_len;
-    sh_traffic_stats.mean_len_flowlet=total_len/flowlet_len_q.size();
+    sh_traffic_stats.flen.max=max_len;
+    sh_traffic_stats.flen.min=min_len;
+    sh_traffic_stats.flen.mean=total_len/flowlet_len_q.size();
     var_len = var_len/flowlet_len_q.size() - powf(max_len/flowlet_len_q.size(), 2);
-    sh_traffic_stats.std_len_flowlet=sqrtf(var_len);
+    sh_traffic_stats.flen.std=sqrtf(var_len);
 
     // find range of distribution
     for(int i=0;i<flowlet_len_q.size();i++){
-        if(flowlet_len_q.at(i)<sh_traffic_stats.mean_len_flowlet-3*sh_traffic_stats.std_len_flowlet){ sh_traffic_stats.flen_num_neg_ci_min++; }
+        if(flowlet_len_q.at(i)<sh_traffic_stats.flen.mean-3*sh_traffic_stats.flen.std){ 
+            sh_traffic_stats.flen.ncmin++; 
+        }else if(
+            (flowlet_len_q.at(i)>=sh_traffic_stats.flen.mean-3*sh_traffic_stats.flen.std) &&
+            (flowlet_len_q.at(i)<sh_traffic_stats.flen.mean-2*sh_traffic_stats.flen.std)
+        ){ sh_traffic_stats.flen.nc3++; }
         else if(
-            (flowlet_len_q.at(i)>=sh_traffic_stats.mean_len_flowlet-3*sh_traffic_stats.std_len_flowlet) &&
-            (flowlet_len_q.at(i)<sh_traffic_stats.mean_len_flowlet-2*sh_traffic_stats.std_len_flowlet)
-        ){ sh_traffic_stats.flen_num_neg_ci_3++; }
+            (flowlet_len_q.at(i)>=sh_traffic_stats.flen.mean-2*sh_traffic_stats.flen.std) &&
+            (flowlet_len_q.at(i)<sh_traffic_stats.flen.mean-sh_traffic_stats.flen.std)
+        ){ sh_traffic_stats.flen.nc2++; }
         else if(
-            (flowlet_len_q.at(i)>=sh_traffic_stats.mean_len_flowlet-2*sh_traffic_stats.std_len_flowlet) &&
-            (flowlet_len_q.at(i)<sh_traffic_stats.mean_len_flowlet-sh_traffic_stats.std_len_flowlet)
-        ){ sh_traffic_stats.flen_num_neg_ci_2++; }
+            (flowlet_len_q.at(i)>=sh_traffic_stats.flen.mean-sh_traffic_stats.flen.std) &&
+            (flowlet_len_q.at(i)<sh_traffic_stats.flen.mean)
+        ){ sh_traffic_stats.flen.nc1++; }
         else if(
-            (flowlet_len_q.at(i)>=sh_traffic_stats.mean_len_flowlet-sh_traffic_stats.std_len_flowlet) &&
-            (flowlet_len_q.at(i)<sh_traffic_stats.mean_len_flowlet)
-        ){ sh_traffic_stats.flen_num_neg_ci_1++; }
+            (flowlet_len_q.at(i)>=sh_traffic_stats.flen.mean) &&
+            (flowlet_len_q.at(i)<sh_traffic_stats.flen.mean+sh_traffic_stats.flen.std) 
+        ){ sh_traffic_stats.flen.pc1++; }
         else if(
-            (flowlet_len_q.at(i)>=sh_traffic_stats.mean_len_flowlet) &&
-            (flowlet_len_q.at(i)<sh_traffic_stats.mean_len_flowlet+sh_traffic_stats.std_len_flowlet) 
-        ){ sh_traffic_stats.flen_num_pos_ci_1++; }
+            (flowlet_len_q.at(i)>=sh_traffic_stats.flen.mean+sh_traffic_stats.flen.std) &&
+            (flowlet_len_q.at(i)<sh_traffic_stats.flen.mean+2*sh_traffic_stats.flen.std)
+        ){ sh_traffic_stats.flen.pc2++; }
         else if(
-            (flowlet_len_q.at(i)>=sh_traffic_stats.mean_len_flowlet+sh_traffic_stats.std_len_flowlet) &&
-            (flowlet_len_q.at(i)<sh_traffic_stats.mean_len_flowlet+2*sh_traffic_stats.std_len_flowlet)
-        ){ sh_traffic_stats.flen_num_pos_ci_2++; }
+            (flowlet_len_q.at(i)>=sh_traffic_stats.flen.mean+2*sh_traffic_stats.flen.std) &&
+            (flowlet_len_q.at(i)<sh_traffic_stats.flen.mean+3*sh_traffic_stats.flen.std)
+        ){ sh_traffic_stats.flen.pc3++; }
         else if(
-            (flowlet_len_q.at(i)>=sh_traffic_stats.mean_len_flowlet+2*sh_traffic_stats.std_len_flowlet) &&
-            (flowlet_len_q.at(i)<sh_traffic_stats.mean_len_flowlet+3*sh_traffic_stats.std_len_flowlet)
-        ){ sh_traffic_stats.flen_num_pos_ci_3++; }
-        else if(
-            (flowlet_len_q.at(i)>=sh_traffic_stats.mean_len_flowlet+3*sh_traffic_stats.std_len_flowlet)
-        ){ sh_traffic_stats.flen_num_pos_ci_max++; }
-        if(flowlet_len_q.at(i)>sh_traffic_stats.flen_threshold){ sh_traffic_stats.flen_num_user_defined++; }        
+            (flowlet_len_q.at(i)>=sh_traffic_stats.flen.mean+3*sh_traffic_stats.flen.std)
+        ){ sh_traffic_stats.flen.pcmax++; }
+        if(flowlet_len_q.at(i)>sh_traffic_stats.flen_threshold){ sh_traffic_stats.flen.user_defined++; }        
     }
 }
 
@@ -475,68 +476,84 @@ void *get_port_dist(void* args)
         var_num_sport+=pow(unique_sport_q.at(i),2);
     }
     // store into traffic_stats
-    sh_traffic_stats.max_num_dport=max_num_dport;
-    sh_traffic_stats.min_num_dport=min_num_dport;
-    sh_traffic_stats.mean_dst_port=num_dport/unique_dport_q.size();
+    sh_traffic_stats.dport.max=max_num_dport;
+    sh_traffic_stats.dport.min=min_num_dport;
+    sh_traffic_stats.dport.mean=num_dport/unique_dport_q.size();
     var_num_dport = var_num_dport/unique_dport_q.size() - powf(num_dport/unique_dport_q.size(), 2);
-    sh_traffic_stats.std_dst_port=sqrtf(var_num_dport);
-    sh_traffic_stats.max_num_sport=max_num_sport;
-    sh_traffic_stats.min_num_sport=min_num_sport;
-    sh_traffic_stats.mean_src_port=num_sport/unique_sport_q.size();
+    sh_traffic_stats.dport.std=sqrtf(var_num_dport);
+    sh_traffic_stats.sport.max=max_num_sport;
+    sh_traffic_stats.sport.min=min_num_sport;
+    sh_traffic_stats.sport.mean=num_sport/unique_sport_q.size();
     var_num_sport = var_num_sport/unique_sport_q.size() - powf(num_sport/unique_sport_q.size(), 2);
-    sh_traffic_stats.std_src_port=sqrtf(var_num_sport);
+    sh_traffic_stats.sport.std=sqrtf(var_num_sport);
 
     // find range of distribution (dst)
     for(int i=0;i<unique_dport_q.size();i++){
-        if(unique_dport_q.at(i)<sh_traffic_stats.mean_dst_port-3*sh_traffic_stats.std_dst_port ){ sh_traffic_stats.dp_num_neg_ci_min++; }
-        else if( 
-            (unique_dport_q.at(i)>=sh_traffic_stats.mean_dst_port-3*sh_traffic_stats.std_dst_port) && 
-            (unique_dport_q.at(i)<sh_traffic_stats.mean_dst_port-2*sh_traffic_stats.std_dst_port) ){ sh_traffic_stats.dp_num_neg_ci_3++; }
+        if(unique_dport_q.at(i)<sh_traffic_stats.dport.mean-3*sh_traffic_stats.dport.std ){
+            sh_traffic_stats.dport.ncmin++; 
+        }else if( 
+            (unique_dport_q.at(i)>=sh_traffic_stats.dport.mean-3*sh_traffic_stats.dport.std) && 
+            (unique_dport_q.at(i)<sh_traffic_stats.dport.mean-2*sh_traffic_stats.dport.std) ){ 
+                sh_traffic_stats.dport.nc3++; }
         else if(
-            (unique_dport_q.at(i)>=sh_traffic_stats.mean_dst_port-2*sh_traffic_stats.std_dst_port) &&
-            (unique_dport_q.at(i)<sh_traffic_stats.mean_dst_port-sh_traffic_stats.std_dst_port)){ sh_traffic_stats.dp_num_neg_ci_2++; }
+            (unique_dport_q.at(i)>=sh_traffic_stats.dport.mean-2*sh_traffic_stats.dport.std) &&
+            (unique_dport_q.at(i)<sh_traffic_stats.dport.mean-sh_traffic_stats.dport.std)){ 
+                sh_traffic_stats.dport.nc2++; }
         else if(
-            (unique_dport_q.at(i)>=sh_traffic_stats.mean_dst_port-sh_traffic_stats.std_dst_port) &&
-            (unique_dport_q.at(i)<sh_traffic_stats.mean_dst_port)){ sh_traffic_stats.dp_num_neg_ci_1++; }
+            (unique_dport_q.at(i)>=sh_traffic_stats.dport.mean-sh_traffic_stats.dport.std) &&
+            (unique_dport_q.at(i)<sh_traffic_stats.dport.mean)){ 
+                sh_traffic_stats.dport.nc1++; }
         else if(
-            (unique_dport_q.at(i)>=sh_traffic_stats.mean_dst_port) &&
-            (unique_dport_q.at(i)<sh_traffic_stats.mean_dst_port+sh_traffic_stats.std_dst_port)){ sh_traffic_stats.dp_num_pos_ci_1++; }
+            (unique_dport_q.at(i)>=sh_traffic_stats.dport.mean) &&
+            (unique_dport_q.at(i)<sh_traffic_stats.dport.mean+sh_traffic_stats.dport.std)){ 
+                sh_traffic_stats.dport.pc1++; }
         else if(
-            (unique_dport_q.at(i)>=sh_traffic_stats.mean_dst_port+sh_traffic_stats.std_dst_port) &&
-            (unique_dport_q.at(i)<sh_traffic_stats.mean_dst_port+2*sh_traffic_stats.std_dst_port)){ sh_traffic_stats.dp_num_pos_ci_2++; }
+            (unique_dport_q.at(i)>=sh_traffic_stats.dport.mean+sh_traffic_stats.dport.std) &&
+            (unique_dport_q.at(i)<sh_traffic_stats.dport.mean+2*sh_traffic_stats.dport.std)){ 
+                sh_traffic_stats.dport.pc2++; }
         else if(
-            (unique_dport_q.at(i)>=sh_traffic_stats.mean_dst_port+2*sh_traffic_stats.std_dst_port) &&
-            (unique_dport_q.at(i)<sh_traffic_stats.mean_dst_port+3*sh_traffic_stats.std_dst_port)){ sh_traffic_stats.dp_num_pos_ci_3++; }
+            (unique_dport_q.at(i)>=sh_traffic_stats.dport.mean+2*sh_traffic_stats.dport.std) &&
+            (unique_dport_q.at(i)<sh_traffic_stats.dport.mean+3*sh_traffic_stats.dport.std)){ 
+                sh_traffic_stats.dport.pc3++; }
         else if(
-            (unique_dport_q.at(i)>=sh_traffic_stats.mean_dst_port+3*sh_traffic_stats.std_dst_port)){ sh_traffic_stats.dp_num_pos_ci_max++; }
+            (unique_dport_q.at(i)>=sh_traffic_stats.dport.mean+3*sh_traffic_stats.dport.std)){ 
+                sh_traffic_stats.dport.pcmax++; }
         // for user-defined threshold (dst)
-        if(unique_dport_q.at(i)>sh_traffic_stats.port_threshold){ sh_traffic_stats.dp_num_user_defined++; }
+        if(unique_dport_q.at(i)>sh_traffic_stats.port_threshold){ sh_traffic_stats.dport.user_defined++; }
     }
     // find range of distribution (src)
     for(int i=0;i<unique_sport_q.size();i++){
-        if(unique_sport_q.at(i)<sh_traffic_stats.mean_src_port-3*sh_traffic_stats.std_src_port ){ sh_traffic_stats.sp_num_neg_ci_min++; }
+        if(unique_sport_q.at(i)<sh_traffic_stats.sport.mean-3*sh_traffic_stats.sport.std ){ 
+            sh_traffic_stats.sport.ncmin++; }
         else if( 
-            (unique_sport_q.at(i)>=sh_traffic_stats.mean_src_port-3*sh_traffic_stats.std_src_port) && 
-            (unique_sport_q.at(i)<sh_traffic_stats.mean_src_port-2*sh_traffic_stats.std_src_port) ){ sh_traffic_stats.sp_num_neg_ci_3++; }
+            (unique_sport_q.at(i)>=sh_traffic_stats.sport.mean-3*sh_traffic_stats.sport.std) && 
+            (unique_sport_q.at(i)<sh_traffic_stats.sport.mean-2*sh_traffic_stats.sport.std) ){ 
+                sh_traffic_stats.sport.nc3++; }
         else if(
-            (unique_sport_q.at(i)>=sh_traffic_stats.mean_src_port-2*sh_traffic_stats.std_src_port) &&
-            (unique_sport_q.at(i)<sh_traffic_stats.mean_src_port-sh_traffic_stats.std_src_port)){ sh_traffic_stats.sp_num_neg_ci_2++; }
+            (unique_sport_q.at(i)>=sh_traffic_stats.sport.mean-2*sh_traffic_stats.sport.std) &&
+            (unique_sport_q.at(i)<sh_traffic_stats.sport.mean-sh_traffic_stats.sport.std)){ 
+                sh_traffic_stats.sport.nc2++; }
         else if(
-            (unique_sport_q.at(i)>=sh_traffic_stats.mean_src_port-sh_traffic_stats.std_src_port) &&
-            (unique_sport_q.at(i)<sh_traffic_stats.mean_src_port)){ sh_traffic_stats.sp_num_neg_ci_1++; }
+            (unique_sport_q.at(i)>=sh_traffic_stats.sport.mean-sh_traffic_stats.sport.std) &&
+            (unique_sport_q.at(i)<sh_traffic_stats.sport.mean)){ 
+                sh_traffic_stats.sport.nc1++; }
         else if(
-            (unique_sport_q.at(i)>=sh_traffic_stats.mean_src_port) &&
-            (unique_sport_q.at(i)<sh_traffic_stats.mean_src_port+sh_traffic_stats.std_src_port)){ sh_traffic_stats.sp_num_pos_ci_1++; }
+            (unique_sport_q.at(i)>=sh_traffic_stats.sport.mean) &&
+            (unique_sport_q.at(i)<sh_traffic_stats.sport.mean+sh_traffic_stats.sport.std)){ 
+                sh_traffic_stats.sport.pc1++; }
         else if(
-            (unique_sport_q.at(i)>=sh_traffic_stats.mean_src_port+sh_traffic_stats.std_src_port) &&
-            (unique_sport_q.at(i)<sh_traffic_stats.mean_src_port+2*sh_traffic_stats.std_src_port)){ sh_traffic_stats.sp_num_pos_ci_2++; }
+            (unique_sport_q.at(i)>=sh_traffic_stats.sport.mean+sh_traffic_stats.sport.std) &&
+            (unique_sport_q.at(i)<sh_traffic_stats.sport.mean+2*sh_traffic_stats.sport.std)){ 
+                sh_traffic_stats.sport.pc2++; }
         else if(
-            (unique_sport_q.at(i)>=sh_traffic_stats.mean_src_port+2*sh_traffic_stats.std_src_port) &&
-            (unique_sport_q.at(i)<sh_traffic_stats.mean_src_port+3*sh_traffic_stats.std_src_port)){ sh_traffic_stats.sp_num_pos_ci_3++; }
+            (unique_sport_q.at(i)>=sh_traffic_stats.sport.mean+2*sh_traffic_stats.sport.std) &&
+            (unique_sport_q.at(i)<sh_traffic_stats.sport.mean+3*sh_traffic_stats.sport.std)){ 
+                sh_traffic_stats.sport.pc3++; }
         else if(
-            (unique_sport_q.at(i)>=sh_traffic_stats.mean_src_port+3*sh_traffic_stats.std_src_port)){ sh_traffic_stats.sp_num_pos_ci_max++; }
+            (unique_sport_q.at(i)>=sh_traffic_stats.sport.mean+3*sh_traffic_stats.sport.std)){ 
+                sh_traffic_stats.sport.pcmax++; }
         // for user-defined threshold (src)
-        if(unique_sport_q.at(i)>sh_traffic_stats.port_threshold){ sh_traffic_stats.sp_num_user_defined++; }
+        if(unique_sport_q.at(i)>sh_traffic_stats.port_threshold){ sh_traffic_stats.sport.user_defined++; }
     }
     
 }
@@ -643,81 +660,81 @@ void print_port_dist()
 {
     // src port - statistics
     cout << "---------------------------------------------------------------" << endl;
-    cout << "Avg. # of src port used by one flow: " << sh_traffic_stats.mean_src_port << endl;
-    cout << "Std. # of src port used by one flow: " << sh_traffic_stats.std_src_port << endl;
-    cout << "Max. # of src port used by one flow: " << sh_traffic_stats.max_num_sport << endl;
-    cout << "Min. # of src port used by one flow: " << sh_traffic_stats.min_num_sport << endl;
+    cout << "Avg. # of src port used by one flow: " << sh_traffic_stats.sport.mean << endl;
+    cout << "Std. # of src port used by one flow: " << sh_traffic_stats.sport.std << endl;
+    cout << "Max. # of src port used by one flow: " << sh_traffic_stats.sport.max << endl;
+    cout << "Min. # of src port used by one flow: " << sh_traffic_stats.sport.min << endl;
     cout << "# of src port used: -------------------------------------------" << endl;
 
-    print_dist_table(sh_traffic_stats.mean_src_port, sh_traffic_stats.std_src_port,
-        sh_traffic_stats.sp_num_neg_ci_min, sh_traffic_stats.sp_num_neg_ci_3, sh_traffic_stats.sp_num_neg_ci_2, sh_traffic_stats.sp_num_neg_ci_1,
-        sh_traffic_stats.sp_num_pos_ci_1, sh_traffic_stats.sp_num_pos_ci_2, sh_traffic_stats.sp_num_pos_ci_3, sh_traffic_stats.sp_num_pos_ci_max);  
+    print_dist_table(sh_traffic_stats.sport.mean, sh_traffic_stats.sport.std,
+        sh_traffic_stats.sport.ncmin, sh_traffic_stats.sport.nc3, sh_traffic_stats.sport.nc2, sh_traffic_stats.sport.nc1,
+        sh_traffic_stats.sport.pc1, sh_traffic_stats.sport.pc2, sh_traffic_stats.sport.pc3, sh_traffic_stats.sport.pcmax);  
 
-    cout << "(> User-defined threshold- " << sh_traffic_stats.port_threshold << "): " << sh_traffic_stats.sp_num_user_defined << endl;
+    cout << "(> User-defined threshold- " << sh_traffic_stats.port_threshold << "): " << sh_traffic_stats.sport.user_defined << endl;
     cout << "---------------------------------------------------------------" << endl;
     // dst port - statistics
-    cout << "Avg. # of dst port used by one flow: " << sh_traffic_stats.mean_dst_port << endl;
-    cout << "Std. # of dst port used by one flow: " << sh_traffic_stats.std_dst_port << endl;
-    cout << "Max. # of dst port used by one flow: " << sh_traffic_stats.max_num_dport << endl;
-    cout << "Min. # of dst port used by one flow: " << sh_traffic_stats.min_num_dport << endl;
+    cout << "Avg. # of dst port used by one flow: " << sh_traffic_stats.dport.mean << endl;
+    cout << "Std. # of dst port used by one flow: " << sh_traffic_stats.dport.std << endl;
+    cout << "Max. # of dst port used by one flow: " << sh_traffic_stats.dport.max << endl;
+    cout << "Min. # of dst port used by one flow: " << sh_traffic_stats.dport.min << endl;
     cout << "# of dst port used: -------------------------------------------" << endl;
 
-    print_dist_table(sh_traffic_stats.mean_dst_port, sh_traffic_stats.std_dst_port,
-        sh_traffic_stats.dp_num_neg_ci_min, sh_traffic_stats.dp_num_neg_ci_3, sh_traffic_stats.dp_num_neg_ci_2, sh_traffic_stats.dp_num_neg_ci_1,
-        sh_traffic_stats.dp_num_pos_ci_1, sh_traffic_stats.dp_num_pos_ci_2, sh_traffic_stats.dp_num_pos_ci_3, sh_traffic_stats.dp_num_pos_ci_max);    
+    print_dist_table(sh_traffic_stats.dport.mean, sh_traffic_stats.dport.std,
+        sh_traffic_stats.dport.ncmin, sh_traffic_stats.dport.nc3, sh_traffic_stats.dport.nc2, sh_traffic_stats.dport.nc1,
+        sh_traffic_stats.dport.pc1, sh_traffic_stats.dport.pc2, sh_traffic_stats.dport.pc3, sh_traffic_stats.dport.pcmax);    
 
-    cout << "(> User-defined threshold- " << sh_traffic_stats.port_threshold << "): " << sh_traffic_stats.dp_num_user_defined << endl;
+    cout << "(> User-defined threshold- " << sh_traffic_stats.port_threshold << "): " << sh_traffic_stats.dport.user_defined << endl;
     cout << "---------------------------------------------------------------" << endl;
 }
 
 void print_flen_dist()
 {
     cout << "---------------------------------------------------------------" << endl;
-    cout << "Avg. length of flowlet: " << sh_traffic_stats.mean_len_flowlet << endl;
-    cout << "Std. length of flowlet: " << sh_traffic_stats.std_len_flowlet << endl;
-    cout << "Max. length of flowlet: " << sh_traffic_stats.max_len_flowlet << endl;
-    cout << "Min. length of flowlet: " << sh_traffic_stats.min_len_flowlet << endl;
+    cout << "Avg. length of flowlet: " << sh_traffic_stats.flen.mean << endl;
+    cout << "Std. length of flowlet: " << sh_traffic_stats.flen.std << endl;
+    cout << "Max. length of flowlet: " << sh_traffic_stats.flen.max << endl;
+    cout << "Min. length of flowlet: " << sh_traffic_stats.flen.min << endl;
     cout << "Length distribution -------------------------------------------" << endl;
 
-    print_dist_table(sh_traffic_stats.mean_len_flowlet, sh_traffic_stats.std_len_flowlet,
-        sh_traffic_stats.flen_num_neg_ci_min, sh_traffic_stats.flen_num_neg_ci_3, sh_traffic_stats.flen_num_neg_ci_2, sh_traffic_stats.flen_num_neg_ci_1,
-        sh_traffic_stats.flen_num_pos_ci_1, sh_traffic_stats.flen_num_pos_ci_2, sh_traffic_stats.flen_num_pos_ci_3, sh_traffic_stats.flen_num_pos_ci_max);    
+    print_dist_table(sh_traffic_stats.flen.mean, sh_traffic_stats.flen.std,
+        sh_traffic_stats.flen.ncmin, sh_traffic_stats.flen.nc3, sh_traffic_stats.flen.nc2, sh_traffic_stats.flen.nc1,
+        sh_traffic_stats.flen.pc1, sh_traffic_stats.flen.pc2, sh_traffic_stats.flen.pc3, sh_traffic_stats.flen.pcmax);    
 
-    cout << "(> User-defined threshold- " << sh_traffic_stats.flen_threshold << "): " << sh_traffic_stats.flen_num_user_defined << endl;
+    cout << "(> User-defined threshold- " << sh_traffic_stats.flen_threshold << "): " << sh_traffic_stats.flen.user_defined << endl;
     cout << "---------------------------------------------------------------" << endl;
 }
 
 void print_rst_dist()
 {
     cout << "---------------------------------------------------------------" << endl;
-    cout << "Avg. num of rst (per flow): " << sh_traffic_stats.mean_rst << endl;
-    cout << "Std. num of rst (per flow): " << sh_traffic_stats.std_rst << endl;
-    cout << "Max. num of rst (per flow): " << sh_traffic_stats.max_num_rst << endl;
-    cout << "Min. num of rst (per flow): " << sh_traffic_stats.min_num_rst << endl;
+    cout << "Avg. num of rst (per flow): " << sh_traffic_stats.rst_num.mean << endl;
+    cout << "Std. num of rst (per flow): " << sh_traffic_stats.rst_num.std << endl;
+    cout << "Max. num of rst (per flow): " << sh_traffic_stats.rst_num.max << endl;
+    cout << "Min. num of rst (per flow): " << sh_traffic_stats.rst_num.min << endl;
     cout << "# of RST dist -------------------------------------------------" << endl;
 
-    print_dist_table(sh_traffic_stats.mean_rst, sh_traffic_stats.std_rst,
-        sh_traffic_stats.rst_num_ncmin, sh_traffic_stats.rst_num_nc3, sh_traffic_stats.rst_num_nc2, sh_traffic_stats.rst_num_nc1,
-        sh_traffic_stats.rst_num_pc1, sh_traffic_stats.rst_num_pc2, sh_traffic_stats.rst_num_pc3, sh_traffic_stats.rst_num_pcmax);    
+    print_dist_table(sh_traffic_stats.rst_num.mean, sh_traffic_stats.rst_num.std,
+        sh_traffic_stats.rst_num.ncmin, sh_traffic_stats.rst_num.nc3, sh_traffic_stats.rst_num.nc2, sh_traffic_stats.rst_num.nc1,
+        sh_traffic_stats.rst_num.pc1, sh_traffic_stats.rst_num.pc2, sh_traffic_stats.rst_num.pc3, sh_traffic_stats.rst_num.pcmax);    
     
-    cout << "(> User-defined threshold- " << sh_traffic_stats.rst_threshold << "): " << sh_traffic_stats.rst_num_user_defined << endl;
+    cout << "(> User-defined threshold- " << sh_traffic_stats.rst_threshold << "): " << sh_traffic_stats.rst_num.user_defined << endl;
     cout << "---------------------------------------------------------------" << endl;
 }
 
 void print_icmp_dist()
 {
     cout << "---------------------------------------------------------------" << endl;
-    cout << "Avg. num of icmp (per flow): " << sh_traffic_stats.mean_icmp_ur << endl;
-    cout << "Std. num of icmp (per flow): " << sh_traffic_stats.std_icmp_ur << endl;
-    cout << "Max. num of icmp (per flow): " << sh_traffic_stats.max_num_icmp_ur << endl;
-    cout << "Min. num of icmp (per flow): " << sh_traffic_stats.min_num_icmp_ur << endl;
+    cout << "Avg. num of icmp (per flow): " << sh_traffic_stats.icmp_ur_num.mean << endl;
+    cout << "Std. num of icmp (per flow): " << sh_traffic_stats.icmp_ur_num.std << endl;
+    cout << "Max. num of icmp (per flow): " << sh_traffic_stats.icmp_ur_num.max << endl;
+    cout << "Min. num of icmp (per flow): " << sh_traffic_stats.icmp_ur_num.min << endl;
     cout << "# of ICMP dist ------------------------------------------------" << endl;
 
-    print_dist_table(sh_traffic_stats.mean_icmp_ur, sh_traffic_stats.std_icmp_ur,
-        sh_traffic_stats.icmp_num_ncmin, sh_traffic_stats.icmp_num_nc3, sh_traffic_stats.icmp_num_nc2, sh_traffic_stats.icmp_num_nc1,
-        sh_traffic_stats.icmp_num_pc1, sh_traffic_stats.icmp_num_pc2, sh_traffic_stats.icmp_num_pc3, sh_traffic_stats.icmp_num_pcmax);    
+    print_dist_table(sh_traffic_stats.icmp_ur_num.mean, sh_traffic_stats.icmp_ur_num.std,
+        sh_traffic_stats.icmp_ur_num.ncmin, sh_traffic_stats.icmp_ur_num.nc3, sh_traffic_stats.icmp_ur_num.nc2, sh_traffic_stats.icmp_ur_num.nc1,
+        sh_traffic_stats.icmp_ur_num.pc1, sh_traffic_stats.icmp_ur_num.pc2, sh_traffic_stats.icmp_ur_num.pc3, sh_traffic_stats.icmp_ur_num.pcmax);    
     
-    cout << "(> User-defined threshold- " << sh_traffic_stats.icmp3_threshold << "): " << sh_traffic_stats.icmp_num_user_defined << endl;
+    cout << "(> User-defined threshold- " << sh_traffic_stats.icmp3_threshold << "): " << sh_traffic_stats.icmp_ur_num.user_defined << endl;
     cout << "---------------------------------------------------------------" << endl;
 }
 
