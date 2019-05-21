@@ -74,6 +74,7 @@ int main(int argc, char **argv){
     traffic_stats.port_threshold=1000;
     traffic_stats.rst_threshold=100;
     traffic_stats.icmp3_threshold=100;
+    traffic_stats.sr_threshold=10000;
     // argparse 
     while((ch=getopt(argc, argv, "vhdc:f:t:p:"))!=-1)
     {

@@ -65,6 +65,7 @@ typedef struct _traffic_t {
     double port_threshold;                  // port upperbound threshold set by user
     double rst_threshold;                   // rst threshold
     double icmp3_threshold;                 // icmp type=3 (11,12) threshold
+    double sr_threshold;                    // sent/recv diffcnt threshold
     vector<string> pt_q;                    // contain the flow that surpass port threshold
     vector<string> ft_q;                    // contain the flow that surpass flowlet threshold
     vector<string> rt_q;                    // same for rst
@@ -74,7 +75,7 @@ typedef struct _traffic_t {
     string filename;
     unsigned long int pktcnt, arpcnt, ipv4cnt, ipv6cnt, icmpcnt, tcpcnt, udpcnt;
     // sent/recv ratio
-    dist_t sr_ratio;
+    dist_t sr_diff;
     // tcp control flag 
     dist_t rst_num;
     // icmp unreachable 

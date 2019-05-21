@@ -16,7 +16,7 @@ int sh_loop(traffic_t t_stats)
     cout << "Preprocess traffic information, please wait a second ..." << endl;
     // using pthread to optimize
     int ret;
-    pthread_t tids[4];
+    pthread_t tids[5];
     ret=pthread_create(&tids[0], NULL, get_port_dist, NULL);
     if(ret!=0){ cout << "get_port_dist(): pthread_create error! error code: " << ret << endl;}
     ret=pthread_create(&tids[1], NULL, get_flowlet_dist, NULL);
@@ -25,6 +25,8 @@ int sh_loop(traffic_t t_stats)
     if(ret!=0){ cout << "get_rst_dist(): pthread_create error! error code: " << ret << endl;}
     ret=pthread_create(&tids[3], NULL, get_icmp_ur_dist, NULL);
     if(ret!=0){ cout << "get_icmp_ur_dist(): pthread_create error! error code: " << ret << endl;}
+    ret=pthread_create(&tids[4], NULL, get_sent_recv_dist, NULL);
+    if(ret!=0){ cout << "get_sent_recv_dist(): pthread_create error! error code: " << ret << endl;}
     
     cout << "Done." << endl;
     // variables
@@ -342,7 +344,6 @@ void *get_icmp_ur_dist(void* args)
     sh_traffic_stats.icmp_ur_num.mean=total/icmp_q.size();
     sh_traffic_stats.icmp_ur_num.std=sqrtf(var);
     // range of dist
-    // range of dist
     for(int i=0;i<icmp_q.size();i++){
         if(icmp_q.at(i)<sh_traffic_stats.icmp_ur_num.mean-3*sh_traffic_stats.icmp_ur_num.std)
             {sh_traffic_stats.icmp_ur_num.ncmin++;}
@@ -439,6 +440,76 @@ void *get_flowlet_dist(void* args)
             (flowlet_len_q.at(i)>=sh_traffic_stats.flen.mean+3*sh_traffic_stats.flen.std)
         ){ sh_traffic_stats.flen.pcmax++; }
         if(flowlet_len_q.at(i)>sh_traffic_stats.flen_threshold){ sh_traffic_stats.flen.user_defined++; }        
+    }
+}
+
+void *get_sent_recv_dist(void* args)
+{
+    long double total=0, var=0;
+    double max=0, min=65535;
+    vector<int> diff_q;
+    for(map<string, flow_stats_t>::iterator iter=sh_flow_stats.begin();
+        iter!=sh_flow_stats.end(); iter++){
+            // cout << "IP: " << iter->first << ", which has " << iter->second.pktcnt.size() << " related IP." << endl;
+            sh_traffic_stats.total_flow_size+=iter->second.pktcnt.size();
+            // get each flow 
+            for(map<string, flow_t>::iterator pktcnt=iter->second.pktcnt.begin();
+                pktcnt!=iter->second.pktcnt.end(); pktcnt++){
+                    // pktcnt->second->flowlet_q, insert into the main queue
+                    int sent=0, recv=0;
+                    for(int i=0;i<pktcnt->second.flowlet_q.size();i++){
+                        sent+=pktcnt->second.flowlet_q.at(i);
+                    }
+                    for(int i=0;i<sh_flow_stats[pktcnt->first].pktcnt[iter->first].flowlet_q.size();i++){
+                        recv+=sh_flow_stats[pktcnt->first].pktcnt[iter->first].flowlet_q.at(i);
+                    }
+                    // if sent<recv, then it will be negative
+                    diff_q.push_back(sent-recv);
+                }
+        }
+    for(int i=0;i<diff_q.size();i++){
+        if(diff_q.at(i)>max){max=diff_q.at(i);}
+        if(diff_q.at(i)<min){min=diff_q.at(i);}
+        total+=diff_q.at(i);
+        var+=pow(diff_q.at(i),2);
+    }
+    // store
+    sh_traffic_stats.sr_diff.max=max;
+    sh_traffic_stats.sr_diff.min=min;
+    sh_traffic_stats.sr_diff.mean=total/diff_q.size();
+    sh_traffic_stats.sr_diff.std=sqrtf(var);
+    // range of dist
+    for(int i=0;i<diff_q.size();i++){
+        if(diff_q.at(i)<sh_traffic_stats.sr_diff.mean-3*sh_traffic_stats.sr_diff.std)
+            {sh_traffic_stats.sr_diff.ncmin++;}
+        else if(
+            (diff_q.at(i)>=sh_traffic_stats.sr_diff.mean-3*sh_traffic_stats.sr_diff.std) &&
+            (diff_q.at(i)<sh_traffic_stats.sr_diff.mean-2*sh_traffic_stats.sr_diff.std)
+        ){ sh_traffic_stats.sr_diff.nc3++; }
+        else if(
+            (diff_q.at(i)>=sh_traffic_stats.sr_diff.mean-2*sh_traffic_stats.sr_diff.std) &&
+            (diff_q.at(i)<sh_traffic_stats.sr_diff.mean-sh_traffic_stats.sr_diff.std)
+        ){ sh_traffic_stats.sr_diff.nc2++; }
+        else if(
+            (diff_q.at(i)>=sh_traffic_stats.sr_diff.mean-sh_traffic_stats.sr_diff.std) &&
+            (diff_q.at(i)<sh_traffic_stats.sr_diff.mean)
+        ){ sh_traffic_stats.sr_diff.nc1++; }
+        else if(
+            (diff_q.at(i)>=sh_traffic_stats.sr_diff.mean) &&
+            (diff_q.at(i)<sh_traffic_stats.sr_diff.mean+sh_traffic_stats.sr_diff.std)
+        ){ sh_traffic_stats.sr_diff.pc1++; }
+        else if(
+            (diff_q.at(i)>=sh_traffic_stats.sr_diff.mean+sh_traffic_stats.sr_diff.std) &&
+            (diff_q.at(i)<sh_traffic_stats.sr_diff.mean+2*sh_traffic_stats.sr_diff.std)
+        ){ sh_traffic_stats.sr_diff.pc2++; }
+        else if(
+            (diff_q.at(i)>=sh_traffic_stats.sr_diff.mean+2*sh_traffic_stats.sr_diff.std) &&
+            (diff_q.at(i)<sh_traffic_stats.sr_diff.mean+3*sh_traffic_stats.sr_diff.std)
+        ){ sh_traffic_stats.sr_diff.pc3++; }
+        else if(
+            (diff_q.at(i)>=sh_traffic_stats.sr_diff.mean+3*sh_traffic_stats.sr_diff.std)
+        ){ sh_traffic_stats.sr_diff.pcmax++; }
+        if(diff_q.at(i)>sh_traffic_stats.sr_threshold){ sh_traffic_stats.sr_diff.user_defined++; }
     }
 }
 
@@ -738,6 +809,23 @@ void print_icmp_dist()
     cout << "---------------------------------------------------------------" << endl;
 }
 
+void print_sent_recv_dist()
+{
+    cout << "---------------------------------------------------------------" << endl;
+    cout << "Avg. diff cnt of sent/recv (per flow): " << sh_traffic_stats.sr_diff.mean << endl;
+    cout << "Std. diff cnt of sent/recv (per flow): " << sh_traffic_stats.sr_diff.std << endl;
+    cout << "Max. diff cnt of sent/recv (per flow): " << sh_traffic_stats.sr_diff.max << endl;
+    cout << "Min. diff cnt of sent/recv (per flow): " << sh_traffic_stats.sr_diff.min << endl;
+    cout << "Diffcnt of S/R dist. -------------------------------------------" << endl;
+
+    print_dist_table(sh_traffic_stats.sr_diff.mean, sh_traffic_stats.sr_diff.std,
+        sh_traffic_stats.sr_diff.ncmin, sh_traffic_stats.sr_diff.nc3, sh_traffic_stats.sr_diff.nc2, sh_traffic_stats.sr_diff.nc1,
+        sh_traffic_stats.sr_diff.pc1, sh_traffic_stats.sr_diff.pc2, sh_traffic_stats.sr_diff.pc3, sh_traffic_stats.sr_diff.pcmax);    
+    
+    cout << "(> User-defined threshold- " << sh_traffic_stats.sr_threshold << "): " << sh_traffic_stats.sr_diff.user_defined << endl;
+    cout << "---------------------------------------------------------------" << endl;
+}
+
 void print_dist_table(double mean, double std, 
     double ncmin, double nc3, double nc2, double nc1,
     double pc1, double pc2, double pc3, double pcmax)
@@ -772,6 +860,7 @@ void ls()
     print_flen_dist();
     print_rst_dist();
     print_icmp_dist();
+    print_sent_recv_dist();
 }
 
 void print_help()

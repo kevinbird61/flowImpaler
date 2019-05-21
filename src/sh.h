@@ -35,6 +35,7 @@ void *get_port_dist(void* args);       // dealing with port distribution
 void *get_flowlet_dist(void* args);    // dealing with flowlet length distribution
 void *get_rst_dist(void* args);        // rst (TCP)
 void *get_icmp_ur_dist(void* args);    // icmp unreachable
+void *get_sent_recv_dist(void* args);  // diff cnt between sent and recv
 
 // component (print helper message)
 void print_basic();         // basic information about current pcap/traffic
@@ -43,6 +44,7 @@ void print_port_dist();     // port distribution
 void print_flen_dist();     // flowlet length distribution
 void print_rst_dist();
 void print_icmp_dist();
+void print_sent_recv_dist();
 
 void print_dist_table(double mean, double std, 
     double ncmin, double nc3, double nc2, double nc1,
