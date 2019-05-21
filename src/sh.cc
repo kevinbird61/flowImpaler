@@ -100,6 +100,14 @@ int sh_execute(vector<string> args)
         // ftop = flowlet threshold
         ftop(stod(args.at(1)));
         return 1;
+    } else if(args.size()==2 && args.at(0)=="rtop"){
+        // rtop = rst threshold
+        rtop(stod(args.at(1)));
+        return 1;
+    } else if(args.size()==2 && args.at(0)=="i3top"){
+        // i3top = icmp type3 threshold
+        i3top(stod(args.at(1)));
+        return 1;
     } else if(args.size()==2 && args.at(0)!="" && args.at(1)!=""){
         // FIXME: Same format checking needed
         target_flow(args.at(0), args.at(1));
@@ -117,71 +125,138 @@ int sh_execute(vector<string> args)
 
 void ptop(double threshold)
 {
-    // check
-    if(threshold==sh_traffic_stats.port_threshold)
-        return;
-    sh_traffic_stats.pt_q.clear();
-    cout << "---------------------------------------------------------------" << endl;
-    cout << "List # of flows that surpass port threshold: " << threshold << endl;
     int num_exceed_pt=0;
-    // traversal all exist flow 
-    for(map<string, flow_stats_t>::iterator src=sh_flow_stats.begin(); 
-        src!=sh_flow_stats.end(); src++){
-            // src->first (srcIP), src->second (pktcnt, related_flows)
-            for(map<string, flow_t>::iterator dst=sh_flow_stats[src->first].pktcnt.begin(); 
-                dst!=sh_flow_stats[src->first].pktcnt.end(); dst++){
-                    if(dst->second.dport_unique.size() > threshold){
-                        num_exceed_pt++;
-                        sh_traffic_stats.pt_q.push_back(src->first+"->"+dst->first);
+    cout << "---------------------------------------------------------------" << endl;
+    // check
+    if(threshold!=sh_traffic_stats.port_threshold){
+        sh_traffic_stats.pt_q.clear();
+        // traversal all exist flow 
+        for(map<string, flow_stats_t>::iterator src=sh_flow_stats.begin(); 
+            src!=sh_flow_stats.end(); src++){
+                // src->first (srcIP), src->second (pktcnt, related_flows)
+                for(map<string, flow_t>::iterator dst=sh_flow_stats[src->first].pktcnt.begin(); 
+                    dst!=sh_flow_stats[src->first].pktcnt.end(); dst++){
+                        if(dst->second.dport_unique.size() > threshold){
+                            num_exceed_pt++;
+                            sh_traffic_stats.pt_q.push_back(src->first+"->"+dst->first);
+                        }
                     }
-                }
-        }
-    // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
-    sh_traffic_stats.port_threshold=threshold;
-    sh_traffic_stats.dp_num_user_defined=num_exceed_pt;
-    // FIXME: also need to update src port distribution ? (does this necessary ?)
+            }
+        // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
+        sh_traffic_stats.port_threshold=threshold;
+        sh_traffic_stats.dp_num_user_defined=num_exceed_pt;
+        // FIXME: also need to update src port distribution ? (does this necessary ?)
 
-    cout << "# of flows:" << num_exceed_pt << endl;
+    }
     // print the flows that meet the condition
     for(auto i=0; i<sh_traffic_stats.pt_q.size(); i++){
         cout << sh_traffic_stats.pt_q.at(i) << endl;
     }
+    cout << "# of flows:" << num_exceed_pt << endl;
+    cout << "List # of flows that surpass port threshold: " << threshold << endl;
     cout << "---------------------------------------------------------------" << endl;
 }
 
 void ftop(double threshold)
 {
-    // check
-    if(threshold==sh_traffic_stats.flen_threshold)
-        return;
-    sh_traffic_stats.ft_q.clear();
-    cout << "---------------------------------------------------------------" << endl;
     int num_exceed_ft=0;
-    // traversal all exist flow 
-    for(map<string, flow_stats_t>::iterator src=sh_flow_stats.begin(); 
-        src!=sh_flow_stats.end(); src++){
-            // src->first (srcIP), src->second (pktcnt, related_flows)
-            for(map<string, flow_t>::iterator dst=sh_flow_stats[src->first].pktcnt.begin(); 
-                dst!=sh_flow_stats[src->first].pktcnt.end(); dst++){
-                    for(int i=0; i<dst->second.flowlet_q.size(); i++){
-                        if(dst->second.flowlet_q.at(i)>threshold){
-                            num_exceed_ft++;
-                            sh_traffic_stats.ft_q.push_back(src->first+"->"+dst->first);
-                            break; // we only need to check which flow has flowlet length > threshold
+    cout << "---------------------------------------------------------------" << endl;
+    // check
+    if(threshold!=sh_traffic_stats.flen_threshold){
+        sh_traffic_stats.ft_q.clear();
+        // traversal all exist flow 
+        for(map<string, flow_stats_t>::iterator src=sh_flow_stats.begin(); 
+            src!=sh_flow_stats.end(); src++){
+                // src->first (srcIP), src->second (pktcnt, related_flows)
+                for(map<string, flow_t>::iterator dst=sh_flow_stats[src->first].pktcnt.begin(); 
+                    dst!=sh_flow_stats[src->first].pktcnt.end(); dst++){
+                        for(int i=0; i<dst->second.flowlet_q.size(); i++){
+                            if(dst->second.flowlet_q.at(i)>threshold){
+                                num_exceed_ft++;
+                                sh_traffic_stats.ft_q.push_back(src->first+"->"+dst->first);
+                                break; // we only need to check which flow has flowlet length > threshold
+                            }
                         }
                     }
-                }
-        }
-    // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
-    sh_traffic_stats.flen_threshold=threshold;
-    sh_traffic_stats.flen_num_user_defined=num_exceed_ft;
+            }
+        // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
+        sh_traffic_stats.flen_threshold=threshold;
+        sh_traffic_stats.flen_num_user_defined=num_exceed_ft;
 
+    }
+    
     // print the flows that meet the condition
     for(auto i=0; i<sh_traffic_stats.ft_q.size(); i++){
         cout << sh_traffic_stats.ft_q.at(i) << endl;
     }
     cout << "# of flows:" << num_exceed_ft << endl;
     cout << "List # of flows that surpass flowlet length threshold: " << threshold << endl;
+    cout << "---------------------------------------------------------------" << endl;
+}
+
+void rtop(double threshold)
+{
+    cout << "---------------------------------------------------------------" << endl;
+    int num_exceed=0;
+    // check
+    if(threshold!=sh_traffic_stats.rst_threshold){
+        sh_traffic_stats.rt_q.clear();
+        // traversal all exist flow 
+        for(map<string, flow_stats_t>::iterator src=sh_flow_stats.begin(); 
+            src!=sh_flow_stats.end(); src++){
+                // src->first (srcIP), src->second (pktcnt, related_flows)
+                for(map<string, flow_t>::iterator dst=sh_flow_stats[src->first].pktcnt.begin(); 
+                    dst!=sh_flow_stats[src->first].pktcnt.end(); dst++){
+                        if(dst->second.recv_rst>threshold){
+                            num_exceed++;
+                            sh_traffic_stats.rt_q.push_back(src->first+"->"+dst->first);
+                        }
+                    }
+            }
+        // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
+        sh_traffic_stats.rst_threshold=threshold;
+        sh_traffic_stats.rst_num_user_defined=num_exceed;
+    }
+
+    // print the flows that meet the condition
+    for(auto i=0; i<sh_traffic_stats.rt_q.size(); i++){
+        cout << sh_traffic_stats.rt_q.at(i) << endl;
+    }
+    cout << "# of flows:" << num_exceed << endl;
+    cout << "List # of flows that surpass rst threshold: " << threshold << endl;
+    cout << "---------------------------------------------------------------" << endl;
+}
+
+void i3top(double threshold)
+{
+    cout << "---------------------------------------------------------------" << endl;
+    int num_exceed=0;
+    // check
+    if(threshold!=sh_traffic_stats.icmp3_threshold){
+        sh_traffic_stats.it_q.clear();
+        // traversal all exist flow 
+        for(map<string, flow_stats_t>::iterator src=sh_flow_stats.begin(); 
+            src!=sh_flow_stats.end(); src++){
+                // src->first (srcIP), src->second (pktcnt, related_flows)
+                for(map<string, flow_t>::iterator dst=sh_flow_stats[src->first].pktcnt.begin(); 
+                    dst!=sh_flow_stats[src->first].pktcnt.end(); dst++){
+                        if(dst->second.unreachable_cnt>threshold){
+                            num_exceed++;
+                            sh_traffic_stats.it_q.push_back(src->first+"->"+dst->first);
+                        }
+                    }
+            }
+        // need to update the value in traffic_t ! (update the part of *_num_user_defined, and port_threshold)
+        sh_traffic_stats.icmp3_threshold=threshold;
+        sh_traffic_stats.icmp_num_user_defined=num_exceed;
+    }
+
+    // print the flows that meet the condition
+    for(auto i=0; i<sh_traffic_stats.it_q.size(); i++){
+        cout << sh_traffic_stats.it_q.at(i) << endl;
+    }
+    cout << "# of flows:" << num_exceed << endl;
+    cout << "List # of flows that surpass icmp3 threshold: " << threshold << endl;
     cout << "---------------------------------------------------------------" << endl;
 }
 
@@ -686,6 +761,12 @@ void print_help()
          << "[Operation]------------------------------------------------------------------------------" << "\n"
          << " \033[1;31m help \033[0m: print this helping message, to illustrate user how to use our service." << "\n"
          << " \033[1;31m exit \033[0m: close this CLI elegantly." << "\n"
+         << "[Attributes]-----------------------------------------------------------------------------" << "\n"
+         << " \033[1;31m ls\033[0m: Print distribution on each attributes. \n" 
+         << " \033[1;31m ptop\033[0m \033[92m<threshold>\033[0m: List all flows that surpass threshold on number of unique dst port." << "\n"
+         << " \033[1;31m ftop\033[0m \033[92m<threshold>\033[0m: List all flows that surpass threshold on length of flowlet." << "\n"
+         << " \033[1;31m rtop\033[0m \033[92m<threshold>\033[0m: List all flows that surpass threshold on number of RST flags(TCP)." << "\n"
+         << " \033[1;31m i3top\033[0m \033[92m<threshold>\033[0m: List all flows that surpass threshold on number of ICMP type=3(UDP)." << "\n"
          << "[Flow]-----------------------------------------------------------------------------------" << "\n"
          << " \033[1;36m <src IP>\033[0m : check all flow stats via specify srcIP." << "\n"
          << " \033[1;36m <src IP>\033[0m \033[92m<dst IP>\033[0m: check the flow stats via specify srcIP and dstIP." << "\n"

@@ -9,7 +9,7 @@ all: $(EXEC)
 
 # executable
 $(EXEC): $(LIBS) $(OBJS) $(THIRD) main.cc
-	g++ $^ -o $@ -Isrc -Ilib -Ithird_party $(CXXFLAGS) -lpcap -lm -lpthread
+	g++ $^ -o $@ -Isrc -Ilib -Ithird_party $(CXXFLAGS) -lpcap -lm -lpthread 
 
 # third party
 $(THIRD): %.o: third_party/%.c 

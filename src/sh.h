@@ -26,6 +26,8 @@ void related_flows(string target);
 void target_flow(string srcIP, string dstIP);
 void ptop(double threshold);    // port threshold
 void ftop(double threshold);    // flowlet length threshold
+void rtop(double threshold);    // rst threshold
+void i3top(double threshold);   // icmp3 threshold
 
 // computing block
 void *get_port_dist(void* args);       // dealing with port distribution

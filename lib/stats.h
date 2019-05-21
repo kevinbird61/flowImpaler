@@ -60,6 +60,8 @@ typedef struct _traffic_t {
     double icmp3_threshold;                 // icmp type=3 (11,12) threshold
     vector<string> pt_q;                    // contain the flow that surpass port threshold
     vector<string> ft_q;                    // contain the flow that surpass flowlet threshold
+    vector<string> rt_q;                    // same for rst
+    vector<string> it_q;                    // same for icmp3
     // basic 
     long int total_flow_size;
     string filename;

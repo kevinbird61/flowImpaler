@@ -6,9 +6,11 @@
  * 
  * Author: Kevin Cyu (kevinbird61@gmail.com)
  */
-#include <cmath>
-#include <iomanip> 
 #include <iostream>
+#include <iomanip> 
+#include <chrono>
+#include <ctime>  
+#include <cmath>
 
 #include "header.h"
 #include "stats.h"
@@ -46,6 +48,8 @@ unsigned long int icmpcnt=0;
 unsigned long int tcpcnt=0;
 unsigned long int udpcnt=0; 
 
+chrono::time_point<std::chrono::system_clock> t_start, t_end;
+
 // All packet information will be extracted and store in here.
 pcap_t *handle; 
 // And let user check out those information via shell.
@@ -58,6 +62,8 @@ void alarm_handler(int sig){ pcap_breakloop(handle); }
 void print_help_msg();
 
 int main(int argc, char **argv){
+    // start computing ts
+    t_start = chrono::system_clock::now();
     // control flags
     int ch,type=0,debug=0,timeout=0,npkts=100;
     vector<string> inputfile;
@@ -170,6 +176,14 @@ int main(int argc, char **argv){
 
     // free
     pcap_close(handle);
+    // end 
+    t_end = chrono::system_clock::now();
+    chrono::duration<double> elapsed_seconds = t_end-t_start;
+    time_t end_time = chrono::system_clock::to_time_t(t_end);
+
+    cout << "=====================================================" << endl;
+    cout << "Finished at " << ctime(&end_time)
+              << "Elapsed time: " << elapsed_seconds.count() << " (sec)\n";
     cout << "=====================================================" << endl;
     cout << "Unique hosts (IP): " << flow_stats.size() << endl;
     cout << "Total amount of packets: " << pktcnt << endl;
