@@ -25,6 +25,7 @@ extern "C"
 #include "xxhash.h"
 }
 
+#define VERSION "1.0.0"
 #define SIZE_ETHER 14
 const struct sniff_ethernet *ethernet; // ethernet header
 const struct sniff_ipv4 *ipv4; // IPv4 header
@@ -62,11 +63,13 @@ int main(int argc, char **argv){
     vector<string> inputfile;
     // init for traffic_stats
     traffic_stats.flowlet_timeout=0.1;
-    traffic_stats.flen_threshold=1000;
     traffic_stats.filename="";
+    traffic_stats.flen_threshold=1000;
     traffic_stats.port_threshold=1000;
+    traffic_stats.rst_threshold=100;
+    traffic_stats.icmp3_threshold=100;
     // argparse 
-    while((ch=getopt(argc, argv, "hdc:f:t:p:"))!=-1)
+    while((ch=getopt(argc, argv, "vhdc:f:t:p:"))!=-1)
     {
         switch(ch)
         {
@@ -100,6 +103,11 @@ int main(int argc, char **argv){
                 cout << "Set timeout value: " << optarg << " (s)." << endl;
                 timeout = atoi(optarg);
                 break;
+            case 'v':
+                // print version
+                cout << "flowimpaler version: " << VERSION << endl;
+                cout << "Author: Kevin Cyu (2019)" << endl;
+                exit(1);
             default:
                 print_help_msg();
                 exit(1);
@@ -154,13 +162,14 @@ int main(int argc, char **argv){
                 return(2); 
             }
             // success, read pcap file and store into pre-defined data structure
+            cout << "Reading all packets from pcap: " << inputfile.at(i) << endl;
             pcap_loop(handle, 0, pkt_process, NULL);
+            cout << "Reading process finished, enter CLI & data preprocessing ..." << endl;
         }    
     }
 
     // free
     pcap_close(handle);
-    cout << "Done, show the traffic information and enter into CLI ..." << endl;
     cout << "=====================================================" << endl;
     cout << "Unique hosts (IP): " << flow_stats.size() << endl;
     cout << "Total amount of packets: " << pktcnt << endl;
@@ -260,7 +269,10 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
                 icmp=(struct sniff_icmp*)(packet + size_existed);
                 size_existed+=4; // 4 bytes 
 
-                // TODO
+                // ICMP network unreachable
+                if(icmp->type==(u_char)3 || icmp->type==(u_char)11 || icmp->type==(u_char)12){
+                    flow_stats[srcIP].pktcnt[dstIP].unreachable_cnt++;
+                }
             }
             else if(ipv4->protocol==(u_char)6){
                 // TCP 

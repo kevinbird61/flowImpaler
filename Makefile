@@ -9,7 +9,7 @@ all: $(EXEC)
 
 # executable
 $(EXEC): $(LIBS) $(OBJS) $(THIRD) main.cc
-	g++ $^ -o $@ -Isrc -Ilib -Ithird_party $(CXXFLAGS) -lpcap -lm
+	g++ $^ -o $@ -Isrc -Ilib -Ithird_party $(CXXFLAGS) -lpcap -lm -lpthread
 
 # third party
 $(THIRD): %.o: third_party/%.c 
@@ -17,7 +17,7 @@ $(THIRD): %.o: third_party/%.c
 
 # objectives (wrote in C++)
 $(OBJS): %.o: src/%.cc 
-	g++ -c $^ -Ilib -o $@ $(CXXFLAGS) -lm
+	g++ -c $^ -Ilib -o $@ $(CXXFLAGS) -lm -lpthread
 
 # libraries (wrote in C)
 $(LIBS): %.o: lib/%.c

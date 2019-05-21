@@ -5,6 +5,7 @@
 #include "stats.h"
 
 #include <iostream>
+#include <pthread.h>
 #include <sstream>
 #include <fstream>
 #include <string>
@@ -27,14 +28,18 @@ void ptop(double threshold);    // port threshold
 void ftop(double threshold);    // flowlet length threshold
 
 // computing block
-void get_port_dist();       // dealing with port distribution
-void get_flowlet_dist();    // dealing with flowlet length distribution
+void *get_port_dist(void* args);       // dealing with port distribution
+void *get_flowlet_dist(void* args);    // dealing with flowlet length distribution
+void *get_rst_dist(void* args);        // rst (TCP)
+void *get_icmp_ur_dist(void* args);    // icmp unreachable
 
 // component (print helper message)
 void print_basic();         // basic information about current pcap/traffic
 void print_analytics();     // traffic analytics (percentage)
 void print_port_dist();     // port distribution
 void print_flen_dist();     // flowlet length distribution
+void print_rst_dist();
+void print_icmp_dist();
 
 // log, helper function
 void print_help();

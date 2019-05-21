@@ -13,10 +13,19 @@ int sh_loop(traffic_t t_stats)
     sh_traffic_stats=t_stats;
     sh_flow_stats=sh_traffic_stats.flow_stats;
     // get port distribution 
-    cout << "Preprocessing your traffic information, please wait a sec ..." << endl;
-    get_port_dist();
-    // get flowlet length distribution
-    get_flowlet_dist();
+    cout << "Preprocess traffic information, please wait a second ..." << endl;
+    // using pthread to optimize
+    int ret;
+    pthread_t tids[4];
+    ret=pthread_create(&tids[0], NULL, get_port_dist, NULL);
+    if(ret!=0){ cout << "get_port_dist(): pthread_create error! error code: " << ret << endl;}
+    ret=pthread_create(&tids[1], NULL, get_flowlet_dist, NULL);
+    if(ret!=0){ cout << "get_flowlet_dist(): pthread_create error! error code: " << ret << endl;}
+    ret=pthread_create(&tids[2], NULL, get_rst_dist, NULL);
+    if(ret!=0){ cout << "get_rst_dist(): pthread_create error! error code: " << ret << endl;}
+    ret=pthread_create(&tids[3], NULL, get_icmp_ur_dist, NULL);
+    if(ret!=0){ cout << "get_icmp_ur_dist(): pthread_create error! error code: " << ret << endl;}
+    
     cout << "Done." << endl;
     // variables
     vector<string> args;
@@ -29,6 +38,8 @@ int sh_loop(traffic_t t_stats)
         args = sh_readline(raw);
         status = sh_execute(args);
     } while(status);
+
+    pthread_exit(NULL);
 }
 
 int sh_interpret(string filename)
@@ -174,7 +185,132 @@ void ftop(double threshold)
     cout << "---------------------------------------------------------------" << endl;
 }
 
-void get_flowlet_dist()
+void *get_rst_dist(void* args)
+{
+    double total=0, var=0;
+    double max=0, min=1000000;
+    vector<int> rst_q;
+    for(map<string, flow_stats_t>::iterator iter=sh_flow_stats.begin();
+        iter!=sh_flow_stats.end(); iter++){
+            // cout << "IP: " << iter->first << ", which has " << iter->second.pktcnt.size() << " related IP." << endl;
+            // get each flow 
+            for(map<string, flow_t>::iterator pktcnt=iter->second.pktcnt.begin();
+                pktcnt!=iter->second.pktcnt.end(); pktcnt++){
+                    // pktcnt->second->flowlet_q, insert into the main queue
+                    if(pktcnt->second.recv_rst > 0)
+                        rst_q.push_back(pktcnt->second.recv_rst);
+                }
+        }
+    for(int i=0;i<rst_q.size();i++){
+        if(rst_q.at(i)>max){max=rst_q.at(i);}
+        if(rst_q.at(i)<min){min=rst_q.at(i);}
+        total+=rst_q.at(i);
+        var+=pow(rst_q.at(i),2);
+    }
+    // store 
+    sh_traffic_stats.max_num_rst=max;
+    sh_traffic_stats.min_num_rst=min;
+    sh_traffic_stats.mean_rst=total/rst_q.size();
+    sh_traffic_stats.std_rst=sqrtf(var);
+    // range of dist
+    for(int i=0;i<rst_q.size();i++){
+        if(rst_q.at(i)<sh_traffic_stats.mean_rst-3*sh_traffic_stats.std_rst)
+            {sh_traffic_stats.rst_num_ncmin++;}
+        else if(
+            (rst_q.at(i)>=sh_traffic_stats.mean_rst-3*sh_traffic_stats.std_rst)&&
+            (rst_q.at(i)<sh_traffic_stats.mean_rst-2*sh_traffic_stats.std_rst)
+        ){ sh_traffic_stats.rst_num_nc3++; }
+        else if(
+            (rst_q.at(i)>=sh_traffic_stats.mean_rst-2*sh_traffic_stats.std_rst)&&
+            (rst_q.at(i)<sh_traffic_stats.mean_rst-sh_traffic_stats.std_rst)
+        ){ sh_traffic_stats.rst_num_nc2++; }
+        else if(
+            (rst_q.at(i)>=sh_traffic_stats.mean_rst-sh_traffic_stats.std_rst)&&
+            (rst_q.at(i)<sh_traffic_stats.mean_rst)
+        ){ sh_traffic_stats.rst_num_nc1++; }
+        else if(
+            (rst_q.at(i)>=sh_traffic_stats.mean_rst)&&
+            (rst_q.at(i)<sh_traffic_stats.mean_rst+sh_traffic_stats.std_rst)
+        ){ sh_traffic_stats.rst_num_pc1++; }
+        else if(
+            (rst_q.at(i)>=sh_traffic_stats.mean_rst+sh_traffic_stats.std_rst)&&
+            (rst_q.at(i)<sh_traffic_stats.mean_rst+2*sh_traffic_stats.std_rst)
+        ){ sh_traffic_stats.rst_num_pc2++; }
+        else if(
+            (rst_q.at(i)>=sh_traffic_stats.mean_rst+2*sh_traffic_stats.std_rst)&&
+            (rst_q.at(i)<sh_traffic_stats.mean_rst+3*sh_traffic_stats.std_rst)
+        ){ sh_traffic_stats.rst_num_pc3++; }
+        else if(
+            (rst_q.at(i)>=sh_traffic_stats.mean_rst+3*sh_traffic_stats.std_rst)
+        ){ sh_traffic_stats.rst_num_pcmax++; }
+        if(rst_q.at(i)>sh_traffic_stats.rst_threshold){ sh_traffic_stats.rst_num_user_defined++; }
+    }
+}
+
+void *get_icmp_ur_dist(void* args)
+{
+    double total=0, var=0;
+    double max=0, min=1000000;
+    vector<int> icmp_q;
+    for(map<string, flow_stats_t>::iterator iter=sh_flow_stats.begin();
+        iter!=sh_flow_stats.end(); iter++){
+            // cout << "IP: " << iter->first << ", which has " << iter->second.pktcnt.size() << " related IP." << endl;
+            // get each flow 
+            for(map<string, flow_t>::iterator pktcnt=iter->second.pktcnt.begin();
+                pktcnt!=iter->second.pktcnt.end(); pktcnt++){
+                    // pktcnt->second->flowlet_q, insert into the main queue
+                    if(pktcnt->second.unreachable_cnt > 0)
+                        icmp_q.push_back(pktcnt->second.unreachable_cnt);
+                }
+        }
+    for(int i=0;i<icmp_q.size();i++){
+        if(icmp_q.at(i)>max){max=icmp_q.at(i);}
+        if(icmp_q.at(i)<min){min=icmp_q.at(i);}
+        total+=icmp_q.at(i);
+        var+=pow(icmp_q.at(i),2);
+    }
+    // store 
+    sh_traffic_stats.max_num_icmp_ur=max;
+    sh_traffic_stats.min_num_icmp_ur=min;
+    sh_traffic_stats.mean_icmp_ur=total/icmp_q.size();
+    sh_traffic_stats.std_icmp_ur=sqrtf(var);
+    // range of dist
+    // range of dist
+    for(int i=0;i<icmp_q.size();i++){
+        if(icmp_q.at(i)<sh_traffic_stats.mean_icmp_ur-3*sh_traffic_stats.std_icmp_ur)
+            {sh_traffic_stats.icmp_num_ncmin++;}
+        else if(
+            (icmp_q.at(i)>=sh_traffic_stats.mean_icmp_ur-3*sh_traffic_stats.std_icmp_ur)&&
+            (icmp_q.at(i)<sh_traffic_stats.mean_icmp_ur-2*sh_traffic_stats.std_icmp_ur)
+        ){ sh_traffic_stats.icmp_num_nc3++; }
+        else if(
+            (icmp_q.at(i)>=sh_traffic_stats.mean_icmp_ur-2*sh_traffic_stats.std_icmp_ur)&&
+            (icmp_q.at(i)<sh_traffic_stats.mean_icmp_ur-sh_traffic_stats.std_icmp_ur)
+        ){ sh_traffic_stats.icmp_num_nc2++; }
+        else if(
+            (icmp_q.at(i)>=sh_traffic_stats.mean_icmp_ur-sh_traffic_stats.std_icmp_ur)&&
+            (icmp_q.at(i)<sh_traffic_stats.mean_icmp_ur)
+        ){ sh_traffic_stats.icmp_num_nc1++; }
+        else if(
+            (icmp_q.at(i)>=sh_traffic_stats.mean_icmp_ur)&&
+            (icmp_q.at(i)<sh_traffic_stats.mean_icmp_ur+sh_traffic_stats.std_icmp_ur)
+        ){ sh_traffic_stats.icmp_num_pc1++; }
+        else if(
+            (icmp_q.at(i)>=sh_traffic_stats.mean_icmp_ur+sh_traffic_stats.std_icmp_ur)&&
+            (icmp_q.at(i)<sh_traffic_stats.mean_icmp_ur+2*sh_traffic_stats.std_icmp_ur)
+        ){ sh_traffic_stats.icmp_num_pc2++; }
+        else if(
+            (icmp_q.at(i)>=sh_traffic_stats.mean_icmp_ur+2*sh_traffic_stats.std_icmp_ur)&&
+            (icmp_q.at(i)<sh_traffic_stats.mean_icmp_ur+3*sh_traffic_stats.std_icmp_ur)
+        ){ sh_traffic_stats.icmp_num_pc3++; }
+        else if(
+            (icmp_q.at(i)>=sh_traffic_stats.mean_icmp_ur+3*sh_traffic_stats.std_icmp_ur)
+        ){ sh_traffic_stats.icmp_num_pcmax++; }
+        if(icmp_q.at(i)>sh_traffic_stats.icmp3_threshold){ sh_traffic_stats.icmp_num_user_defined++; }
+    }
+}
+
+void *get_flowlet_dist(void* args)
 {
     long double total_len=0, var_len=0;
     double max_len=0, min_len=65535;
@@ -238,7 +374,7 @@ void get_flowlet_dist()
     }
 }
 
-void get_port_dist()
+void *get_port_dist(void* args)
 {
     double num_dport=0, num_sport=0, var_num_dport=0, var_num_sport=0
         , std_num_dport=0, std_num_sport=0, max_num_dport=0,min_num_dport=65535
@@ -251,8 +387,10 @@ void get_port_dist()
             // get each flow 
             for(map<string, flow_t>::iterator pktcnt=iter->second.pktcnt.begin();
                 pktcnt!=iter->second.pktcnt.end(); pktcnt++){
-                    unique_dport_q.push_back(pktcnt->second.dport_unique.size());
-                    unique_sport_q.push_back(pktcnt->second.sport_unique.size());
+                    if(pktcnt->second.dport_unique.size()>0)
+                        unique_dport_q.push_back(pktcnt->second.dport_unique.size());
+                    if(pktcnt->second.sport_unique.size()>0)
+                        unique_sport_q.push_back(pktcnt->second.sport_unique.size());
                 }
         }
     // calculate - dst
@@ -491,12 +629,54 @@ void print_flen_dist()
     cout << "---------------------------------------------------------------" << endl;
 }
 
+void print_rst_dist()
+{
+    cout << "---------------------------------------------------------------" << endl;
+    cout << "Avg. num of rst (per flow): " << sh_traffic_stats.mean_rst << endl;
+    cout << "Std. num of rst (per flow): " << sh_traffic_stats.std_rst << endl;
+    cout << "Max. num of rst (per flow): " << sh_traffic_stats.max_num_rst << endl;
+    cout << "Min. num of rst (per flow): " << sh_traffic_stats.min_num_rst << endl;
+    cout << "# of RST dist -------------------------------------------------" << endl;
+    cout << "0 ~ " << sh_traffic_stats.mean_rst-3*sh_traffic_stats.std_rst << "(mean-3*std): " << sh_traffic_stats.rst_num_ncmin << endl;
+    cout << "(mean-3*std) ~ " << sh_traffic_stats.mean_rst-2*sh_traffic_stats.std_rst << "(mean-2*std): " << sh_traffic_stats.rst_num_nc3 << endl;
+    cout << "(mean-2*std) ~ " << sh_traffic_stats.mean_rst-sh_traffic_stats.std_rst <<  "(mean-std): " << sh_traffic_stats.rst_num_nc2 << endl;
+    cout << "(mean-std) ~ mean: " << sh_traffic_stats.rst_num_nc1 << endl;
+    cout << "mean ~ " << sh_traffic_stats.mean_rst+sh_traffic_stats.std_rst << "(mean+std): " << sh_traffic_stats.rst_num_pc1 << endl;
+    cout << "(mean+std) ~ " << sh_traffic_stats.mean_rst+2*sh_traffic_stats.std_rst << "(mean+2*std): " << sh_traffic_stats.rst_num_pc2 << endl;
+    cout << "(mean+2*std) ~ " << sh_traffic_stats.mean_rst+3*sh_traffic_stats.std_rst << "(mean+3*std): " << sh_traffic_stats.rst_num_pc3 << endl;
+    cout << "> mean+3*std: " << sh_traffic_stats.rst_num_pcmax << endl; 
+    cout << "(> User-defined threshold- " << sh_traffic_stats.rst_threshold << "): " << sh_traffic_stats.rst_num_user_defined << endl;
+    cout << "---------------------------------------------------------------" << endl;
+}
+
+void print_icmp_dist()
+{
+    cout << "---------------------------------------------------------------" << endl;
+    cout << "Avg. num of icmp (per flow): " << sh_traffic_stats.mean_icmp_ur << endl;
+    cout << "Std. num of icmp (per flow): " << sh_traffic_stats.std_icmp_ur << endl;
+    cout << "Max. num of icmp (per flow): " << sh_traffic_stats.max_num_icmp_ur << endl;
+    cout << "Min. num of icmp (per flow): " << sh_traffic_stats.min_num_icmp_ur << endl;
+    cout << "# of ICMP dist ------------------------------------------------" << endl;
+    cout << "0 ~ " << sh_traffic_stats.mean_icmp_ur-3*sh_traffic_stats.std_icmp_ur << "(mean-3*std): " << sh_traffic_stats.icmp_num_ncmin << endl;
+    cout << "(mean-3*std) ~ " << sh_traffic_stats.mean_icmp_ur-2*sh_traffic_stats.std_icmp_ur << "(mean-2*std): " << sh_traffic_stats.icmp_num_nc3 << endl;
+    cout << "(mean-2*std) ~ " << sh_traffic_stats.mean_icmp_ur-sh_traffic_stats.std_icmp_ur <<  "(mean-std): " << sh_traffic_stats.icmp_num_nc2 << endl;
+    cout << "(mean-std) ~ mean: " << sh_traffic_stats.icmp_num_nc1 << endl;
+    cout << "mean ~ " << sh_traffic_stats.mean_icmp_ur+sh_traffic_stats.std_icmp_ur << "(mean+std): " << sh_traffic_stats.icmp_num_pc1 << endl;
+    cout << "(mean+std) ~ " << sh_traffic_stats.mean_icmp_ur+2*sh_traffic_stats.std_icmp_ur << "(mean+2*std): " << sh_traffic_stats.icmp_num_pc2 << endl;
+    cout << "(mean+2*std) ~ " << sh_traffic_stats.mean_icmp_ur+3*sh_traffic_stats.std_icmp_ur << "(mean+3*std): " << sh_traffic_stats.icmp_num_pc3 << endl;
+    cout << "> mean+3*std: " << sh_traffic_stats.icmp_num_pcmax << endl; 
+    cout << "(> User-defined threshold- " << sh_traffic_stats.icmp3_threshold << "): " << sh_traffic_stats.icmp_num_user_defined << endl;
+    cout << "---------------------------------------------------------------" << endl;
+}
+
 void ls()
 {
     print_basic();
     print_analytics();
     print_port_dist();
     print_flen_dist();
+    print_rst_dist();
+    print_icmp_dist();
 }
 
 void print_help()

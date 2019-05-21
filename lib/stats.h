@@ -56,12 +56,24 @@ typedef struct _traffic_t {
     double flowlet_timeout;                 // if the user reset/modify the FLOWLET_TIMEOUT, it will store in here.
     double flen_threshold;                  // flowlet len upperbound threshold set by user
     double port_threshold;                  // port upperbound threshold set by user
+    double rst_threshold;                   // rst threshold
+    double icmp3_threshold;                 // icmp type=3 (11,12) threshold
     vector<string> pt_q;                    // contain the flow that surpass port threshold
     vector<string> ft_q;                    // contain the flow that surpass flowlet threshold
     // basic 
     long int total_flow_size;
     string filename;
     unsigned long int pktcnt, arpcnt, ipv4cnt, ipv6cnt, icmpcnt, tcpcnt, udpcnt;
+    // tcp control flag 
+    double max_num_rst, min_num_rst, mean_rst, std_rst;
+    double rst_num_pc1, rst_num_pc2, rst_num_pc3, rst_num_pcmax;
+    double rst_num_nc1, rst_num_nc2, rst_num_nc3, rst_num_ncmin;
+    double rst_num_user_defined;
+    // icmp unreachable 
+    double max_num_icmp_ur, min_num_icmp_ur, mean_icmp_ur, std_icmp_ur;
+    double icmp_num_pc1, icmp_num_pc2, icmp_num_pc3, icmp_num_pcmax;
+    double icmp_num_nc1, icmp_num_nc2, icmp_num_nc3, icmp_num_ncmin;
+    double icmp_num_user_defined;
     // flowlet length distribution
     double max_len_flowlet, min_len_flowlet, mean_len_flowlet, std_len_flowlet;
     double flen_num_pos_ci_1, flen_num_pos_ci_2, flen_num_pos_ci_3, flen_num_pos_ci_max;
