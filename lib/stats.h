@@ -20,6 +20,7 @@ typedef struct _flow_t {
     double flowlet_duration;
     vector<int> flowlet_q;
     vector<double> flowlet_duration_q;
+    vector<int> pktlen_q;
     // L3
     string srcIP;
     string dstIP;
@@ -66,26 +67,24 @@ typedef struct _traffic_t {
     double rst_threshold;                   // rst threshold
     double icmp3_threshold;                 // icmp type=3 (11,12) threshold
     double sr_threshold;                    // sent/recv diffcnt threshold
+    double pktlen_threshold;                // packet length threshold
     vector<string> pt_q;                    // contain the flow that surpass port threshold
     vector<string> ft_q;                    // contain the flow that surpass flowlet threshold
     vector<string> rt_q;                    // same for rst
     vector<string> it_q;                    // same for icmp3
+    vector<string> plt_q;                   // same for pktlen
     // basic 
     long int total_flow_size;
     string filename;
     unsigned long int pktcnt, arpcnt, ipv4cnt, ipv6cnt, icmpcnt, tcpcnt, udpcnt;
-    // sent/recv ratio
-    dist_t sr_diff;
-    // tcp control flag 
-    dist_t rst_num;
-    // icmp unreachable 
-    dist_t icmp_ur_num;
-    // flowlet length distribution
-    dist_t flen;
-    // dst port distribution 
-    dist_t dport;
-    // src port 
-    dist_t sport;
+    // distribution attribute
+    dist_t pktlen;
+    dist_t sr_diff;         // sent/recv ratio
+    dist_t rst_num;         // tcp control flag 
+    dist_t icmp_ur_num;     // icmp unreachable 
+    dist_t flen;            // flowlet length 
+    dist_t dport;           // dst port 
+    dist_t sport;           // src port 
 } traffic_t;
 
 #endif

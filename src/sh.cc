@@ -16,7 +16,7 @@ int sh_loop(traffic_t t_stats)
     cout << "Preprocess traffic information, please wait a second ..." << endl;
     // using pthread to optimize
     int ret;
-    pthread_t tids[5];
+    pthread_t tids[6];
     ret=pthread_create(&tids[0], NULL, get_port_dist, NULL);
     if(ret!=0){ cout << "get_port_dist(): pthread_create error! error code: " << ret << endl;}
     ret=pthread_create(&tids[1], NULL, get_flowlet_dist, NULL);
@@ -27,6 +27,8 @@ int sh_loop(traffic_t t_stats)
     if(ret!=0){ cout << "get_icmp_ur_dist(): pthread_create error! error code: " << ret << endl;}
     ret=pthread_create(&tids[4], NULL, get_sent_recv_dist, NULL);
     if(ret!=0){ cout << "get_sent_recv_dist(): pthread_create error! error code: " << ret << endl;}
+    ret=pthread_create(&tids[5], NULL, get_pktlen_dist, NULL);
+    if(ret!=0){ cout << "get_pktlen_dist(): pthread_create error! error code: " << ret << endl;}
     
     cout << "Done." << endl;
     // variables
@@ -252,6 +254,67 @@ void i3top(double threshold)
     cout << "# of flows:" << sh_traffic_stats.it_q.size() << endl;
     cout << "List # of flows that surpass icmp3 threshold: " << threshold << endl;
     cout << "---------------------------------------------------------------" << endl;
+}
+
+void *get_pktlen_dist(void *args)
+{
+    double total=0, var=0;
+    double max=0, min=1000000;
+    vector<int> q;
+    for(map<string, flow_stats_t>::iterator iter=sh_flow_stats.begin();
+        iter!=sh_flow_stats.end(); iter++){
+            // cout << "IP: " << iter->first << ", which has " << iter->second.pktcnt.size() << " related IP." << endl;
+            // get each flow 
+            for(map<string, flow_t>::iterator pktcnt=iter->second.pktcnt.begin();
+                pktcnt!=iter->second.pktcnt.end(); pktcnt++){
+                    // pktcnt->second->flowlet_q, insert into the main queue
+                    q.insert(q.end(), pktcnt->second.pktlen_q.begin(), pktcnt->second.pktlen_q.end());
+                }
+        }
+    for(int i=0;i<q.size();i++){
+        if(q.at(i)>max){max=q.at(i);}
+        if(q.at(i)<min){min=q.at(i);}
+        total+=q.at(i);
+        var+=pow(q.at(i),2);
+    }
+    // store 
+    sh_traffic_stats.pktlen.max=max;
+    sh_traffic_stats.pktlen.min=min;
+    sh_traffic_stats.pktlen.mean=total/q.size();
+    sh_traffic_stats.pktlen.std=sqrtf(var);
+    // range of dist
+    for(int i=0;i<q.size();i++){
+        if(q.at(i)<sh_traffic_stats.pktlen.mean-3*sh_traffic_stats.pktlen.std)
+            {sh_traffic_stats.pktlen.ncmin++;}
+        else if(
+            (q.at(i)>=sh_traffic_stats.pktlen.mean-3*sh_traffic_stats.pktlen.std)&&
+            (q.at(i)<sh_traffic_stats.pktlen.mean-2*sh_traffic_stats.pktlen.std)
+        ){ sh_traffic_stats.pktlen.nc3++; }
+        else if(
+            (q.at(i)>=sh_traffic_stats.pktlen.mean-2*sh_traffic_stats.pktlen.std)&&
+            (q.at(i)<sh_traffic_stats.pktlen.mean-sh_traffic_stats.pktlen.std)
+        ){ sh_traffic_stats.pktlen.nc2++; }
+        else if(
+            (q.at(i)>=sh_traffic_stats.pktlen.mean-sh_traffic_stats.pktlen.std)&&
+            (q.at(i)<sh_traffic_stats.pktlen.mean)
+        ){ sh_traffic_stats.pktlen.nc1++; }
+        else if(
+            (q.at(i)>=sh_traffic_stats.pktlen.mean)&&
+            (q.at(i)<sh_traffic_stats.pktlen.mean+sh_traffic_stats.pktlen.std)
+        ){ sh_traffic_stats.pktlen.pc1++; }
+        else if(
+            (q.at(i)>=sh_traffic_stats.pktlen.mean+sh_traffic_stats.pktlen.std)&&
+            (q.at(i)<sh_traffic_stats.pktlen.mean+2*sh_traffic_stats.pktlen.std)
+        ){ sh_traffic_stats.pktlen.pc2++; }
+        else if(
+            (q.at(i)>=sh_traffic_stats.pktlen.mean+2*sh_traffic_stats.pktlen.std)&&
+            (q.at(i)<sh_traffic_stats.pktlen.mean+3*sh_traffic_stats.pktlen.std)
+        ){ sh_traffic_stats.pktlen.pc3++; }
+        else if(
+            (q.at(i)>=sh_traffic_stats.pktlen.mean+3*sh_traffic_stats.pktlen.std)
+        ){ sh_traffic_stats.pktlen.pcmax++; }
+        if(q.at(i)>sh_traffic_stats.pktlen_threshold){ sh_traffic_stats.pktlen.user_defined++; }
+    }
 }
 
 void *get_rst_dist(void* args)
@@ -826,6 +889,23 @@ void print_sent_recv_dist()
     cout << "---------------------------------------------------------------" << endl;
 }
 
+void print_pktlen_dist()
+{
+    cout << "---------------------------------------------------------------" << endl;
+    cout << "Avg. packet length (per flow): " << sh_traffic_stats.pktlen.mean << endl;
+    cout << "Std. packet length (per flow): " << sh_traffic_stats.pktlen.std << endl;
+    cout << "Max. packet length (per flow): " << sh_traffic_stats.pktlen.max << endl;
+    cout << "Min. packet length (per flow): " << sh_traffic_stats.pktlen.min << endl;
+    cout << "Diffcnt of S/R dist. -------------------------------------------" << endl;
+
+    print_dist_table(sh_traffic_stats.pktlen.mean, sh_traffic_stats.pktlen.std,
+        sh_traffic_stats.pktlen.ncmin, sh_traffic_stats.pktlen.nc3, sh_traffic_stats.pktlen.nc2, sh_traffic_stats.pktlen.nc1,
+        sh_traffic_stats.pktlen.pc1, sh_traffic_stats.pktlen.pc2, sh_traffic_stats.pktlen.pc3, sh_traffic_stats.pktlen.pcmax);    
+    
+    cout << "(> User-defined threshold- " << sh_traffic_stats.pktlen_threshold << "): " << sh_traffic_stats.pktlen.user_defined << endl;
+    cout << "---------------------------------------------------------------" << endl;
+}
+
 void print_dist_table(double mean, double std, 
     double ncmin, double nc3, double nc2, double nc1,
     double pc1, double pc2, double pc3, double pcmax)
@@ -861,6 +941,7 @@ void ls()
     print_rst_dist();
     print_icmp_dist();
     print_sent_recv_dist();
+    print_pktlen_dist();
 }
 
 void print_help()

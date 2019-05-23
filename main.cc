@@ -408,6 +408,9 @@ void pkt_process(u_char *args, const struct pcap_pkthdr *header, const u_char *p
         flow_stats[srcIP].pktcnt[dstIP].flowlet_duration=0;
     }
 
+    // store packet length 
+    flow_stats[srcIP].pktcnt[dstIP].pktlen_q.push_back(header->len);
+
     // rest part (payload)
     payload=(char*)(packet+size_existed);
     size_existed=0; // reset
