@@ -112,6 +112,43 @@ int sh_execute(vector<string> args)
         // i3top = icmp type3 threshold
         i3top(stod(args.at(1)));
         return 1;
+    } else if(args.at(0)=="export"){
+        if(args.at(1)=="pktlen"){
+            if(args.size()==4){
+                // with upperbound and lowerbound
+                export_pktlen(stoi(args.at(2)), stoi(args.at(3)));
+            } else if (args.size()==3){
+                // only upperbound
+                export_pktlen(0, stoi(args.at(2)));
+            } else {
+                // default setting
+                export_pktlen(0, 10000); 
+            }
+        } else if(args.at(1)=="dport") {
+            if(args.size()==4){
+                // with upperbound and lowerbound
+                export_dport(stoi(args.at(2)), stoi(args.at(3)));
+            } else if (args.size()==3){
+                // only upperbound
+                export_dport(0, stoi(args.at(2)));
+            } else {
+                // default setting
+                export_dport(0, 10000000); 
+            }
+        } else if(args.at(1)=="rst") {
+            if(args.size()==4){
+                // with upperbound and lowerbound
+                export_rst(stoi(args.at(2)), stoi(args.at(3)));
+            } else if (args.size()==3){
+                // only upperbound
+                export_rst(0, stoi(args.at(2)));
+            } else {
+                // default setting
+                export_rst(0, 10000); 
+            }
+        }
+
+        return 1;
     } else if(args.size()==2 && args.at(0)!="" && args.at(1)!=""){
         // FIXME: Same format checking needed
         target_flow(args.at(0), args.at(1));
@@ -254,6 +291,86 @@ void i3top(double threshold)
     cout << "# of flows:" << sh_traffic_stats.it_q.size() << endl;
     cout << "List # of flows that surpass icmp3 threshold: " << threshold << endl;
     cout << "---------------------------------------------------------------" << endl;
+}
+
+void export_pktlen(int lb, int ub)
+{
+    map<int, int> pktlen_cnt;
+    vector<int> q;
+    for(map<string, flow_stats_t>::iterator iter=sh_flow_stats.begin();
+        iter!=sh_flow_stats.end(); iter++){
+            // cout << "IP: " << iter->first << ", which has " << iter->second.pktcnt.size() << " related IP." << endl;
+            // get each flow 
+            for(map<string, flow_t>::iterator pktcnt=iter->second.pktcnt.begin();
+                pktcnt!=iter->second.pktcnt.end(); pktcnt++){
+                    // pktcnt->second->flowlet_q, insert into the main queue
+                    q.insert(q.end(), pktcnt->second.pktlen_q.begin(), pktcnt->second.pktlen_q.end());
+                }
+        }
+    for(int i=0;i<q.size();i++){
+        pktlen_cnt[q.at(i)]++;
+    }
+    // dump 
+    ofstream pktlen_out;
+    // pktlen_out.open ("pktlen_" + sh_traffic_stats.filename + ".txt");
+    pktlen_out.open("pktlen_flowimpaler.txt");
+    for(map<int,int>::iterator i=pktlen_cnt.begin();
+        i!=pktlen_cnt.end(); i++){
+            if(i->first >= lb && i->first < ub)
+                pktlen_out << i->first << " " << i->second << "\n";
+        }
+    pktlen_out.close();
+}
+
+void export_rst(int lb, int ub)
+{
+    map<int, int> cnt;
+    vector<int> q;
+    for(map<string, flow_stats_t>::iterator iter=sh_flow_stats.begin();
+        iter!=sh_flow_stats.end(); iter++){
+            // cout << "IP: " << iter->first << ", which has " << iter->second.pktcnt.size() << " related IP." << endl;
+            // get each flow 
+            for(map<string, flow_t>::iterator pktcnt=iter->second.pktcnt.begin();
+                pktcnt!=iter->second.pktcnt.end(); pktcnt++){
+                    // pktcnt->second.*, insert into the main queue
+                    cnt[pktcnt->second.recv_rst]++;
+                }
+        }
+    // dump 
+    ofstream out;
+    // pktlen_out.open ("pktlen_" + sh_traffic_stats.filename + ".txt");
+    out.open("rst_flowimpaler.txt");
+    for(map<int,int>::iterator i=cnt.begin();
+        i!=cnt.end(); i++){
+            if(i->first >= lb && i->first < ub)
+                out << i->first << " " << i->second << "\n";
+        }
+    out.close();
+}
+
+void export_dport(int lb, int ub)
+{
+    map<int, int> cnt;
+    for(map<string, flow_stats_t>::iterator iter=sh_flow_stats.begin();
+        iter!=sh_flow_stats.end(); iter++){
+            // cout << "IP: " << iter->first << ", which has " << iter->second.pktcnt.size() << " related IP." << endl;
+            // get each flow 
+            for(map<string, flow_t>::iterator pktcnt=iter->second.pktcnt.begin();
+                pktcnt!=iter->second.pktcnt.end(); pktcnt++){
+                    // pktcnt->second.*, insert into the main queue
+                    cnt[pktcnt->second.dport_unique.size()]++;
+                }
+        }
+    // dump 
+    ofstream out;
+    // pktlen_out.open ("pktlen_" + sh_traffic_stats.filename + ".txt");
+    out.open("dport_flowimpaler.txt");
+    for(map<int,int>::iterator i=cnt.begin();
+        i!=cnt.end(); i++){
+            if(i->first >= lb && i->first < ub)
+                out << i->first << " " << i->second << "\n";
+        }
+    out.close();
 }
 
 void *get_pktlen_dist(void *args)

@@ -33,3 +33,6 @@
 
 # exe
 flowimpaler
+
+# txt
+*.txt

@@ -23,12 +23,18 @@ int sh_execute(vector<string> args);
 
 // support command
 void ls();
+// print msg
 void related_flows(string target);
 void target_flow(string srcIP, string dstIP);
+// print by specify threshold
 void ptop(double threshold);    // port threshold
 void ftop(double threshold);    // flowlet length threshold
 void rtop(double threshold);    // rst threshold
 void i3top(double threshold);   // icmp3 threshold
+// dump msg into file
+void export_pktlen(int lb, int ub);
+void export_rst(int lb, int ub);
+void export_dport(int lb, int ub);
 
 // computing block
 void *get_port_dist(void* args);       // dealing with port distribution
