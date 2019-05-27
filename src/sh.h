@@ -34,6 +34,7 @@ void i3top(double threshold);   // icmp3 threshold
 // dump msg into file
 void export_pktlen(int lb, int ub);
 void export_rst(int lb, int ub);
+void export_icmp(int lb, int ub);
 void export_dport(int lb, int ub);
 
 // computing block

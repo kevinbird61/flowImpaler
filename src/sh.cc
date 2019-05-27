@@ -4,6 +4,8 @@
  */
 #include "sh.h"
 
+#define UPPERBOUND 1000000
+
 traffic_t sh_traffic_stats;
 map<string, flow_stats_t> sh_flow_stats; 
 
@@ -122,7 +124,7 @@ int sh_execute(vector<string> args)
                 export_pktlen(0, stoi(args.at(2)));
             } else {
                 // default setting
-                export_pktlen(0, 10000); 
+                export_pktlen(0, UPPERBOUND); 
             }
         } else if(args.at(1)=="dport") {
             if(args.size()==4){
@@ -133,7 +135,7 @@ int sh_execute(vector<string> args)
                 export_dport(0, stoi(args.at(2)));
             } else {
                 // default setting
-                export_dport(0, 10000000); 
+                export_dport(0, UPPERBOUND); 
             }
         } else if(args.at(1)=="rst") {
             if(args.size()==4){
@@ -144,7 +146,7 @@ int sh_execute(vector<string> args)
                 export_rst(0, stoi(args.at(2)));
             } else {
                 // default setting
-                export_rst(0, 10000); 
+                export_rst(0, UPPERBOUND); 
             }
         }
 
