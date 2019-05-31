@@ -4,5 +4,5 @@
 
 * using command:
 ```bash
-$ gnuplot plot.gp <{pktlen | rst | dport}_flowimpaler.txt> <{output_filename}.png>
+$ gnuplot -c plot.gp <{pktlen | rst | dport}_flowimpaler.txt> <{output_filename}.png>
 ```
